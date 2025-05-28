@@ -88,10 +88,10 @@ jobs:
             fi
           done < archivos_afectados.txt
 
-          - name: Guardar archivos mejorados como artefacto
-          uses: actions/upload-artifact@v3
-          with:
-            name: archivos-mejorados
-            path: '**/*.mejorado.java'
+      - name: Guardar archivos mejorados como artefacto
+        uses: actions/upload-artifact@v3
+        with:
+          name: archivos-mejorados
+          path: '**/*.mejorado.java'
 
 
