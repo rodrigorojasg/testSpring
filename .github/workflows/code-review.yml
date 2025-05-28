@@ -155,4 +155,4 @@ jobs:
 
       - name: Finalizar si no mejora calidad
         if: ${{ steps.comparar.outputs.errores_despues >= steps.comparar.outputs.errores_antes }}
-        run: echo "No se hizo merge: la calidad no mejoró."
+        run: echo "No se hizo merge la calidad no mejoró."
