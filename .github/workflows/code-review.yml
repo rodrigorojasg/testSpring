@@ -87,11 +87,11 @@ jobs:
               echo "Archivo no encontrado: $FILE"
             fi
           done < archivos_afectados.txt
-
       - name: Guardar archivos mejorados como artefacto
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: archivos-mejorados
           path: '**/*.mejorado.java'
+
 
 
