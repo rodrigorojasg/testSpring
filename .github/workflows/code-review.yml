@@ -37,9 +37,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          cd sonar-original
-          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
-          cd ..
+          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN -Dproject.settings=sonar-original/sonar-project.properties
 
       - name: Guardar reporte original
         env:
@@ -106,9 +104,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          cd sonar-mejorado
-          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
-          cd ..
+          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN -Dproject.settings=sonar-mejorado/sonar-project.properties
 
       - name: Guardar reporte del código mejorado
         env:
