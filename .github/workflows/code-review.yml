@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Leer número de iteración actual
-        id: iteracion
+        id: leer_iteracion
         run: |
           iter=1
           if [ -f .iteracion_ci ]; then
@@ -27,7 +27,7 @@ jobs:
           echo "ITERACION_ACTUAL=$iter" >> $GITHUB_ENV
 
       - name: Verificar si se excedió el máximo de iteraciones
-        if: ${{ env.ITERACION_ACTUAL > env.MAX_ITERACIONES_CI }}
+        if: env.ITERACION_ACTUAL > env.MAX_ITERACIONES_CI
         run: |
           echo "❌ Límite de $MAX_ITERACIONES_CI iteraciones alcanzado. Abortando."
           exit 1
@@ -128,8 +128,8 @@ jobs:
             [ -f "$mejorado" ] && diff "$f" "$mejorado" > "reportes_ci/diff_$(basename $f).txt" || true
           done
 
-          echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_OUTPUT
-          echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_OUTPUT
+          echo "errores_antes=$errores_antes" >> $GITHUB_OUTPUT
+          echo "errores_despues=$errores_despues" >> $GITHUB_OUTPUT
 
       - name: Subir reportes como artefacto
         uses: actions/upload-artifact@v3
@@ -138,7 +138,7 @@ jobs:
           path: reportes_ci
 
       - name: Hacer commit si la calidad mejora
-        if: ${{ steps.comparar.outputs.ERRORES_DESPUES < steps.comparar.outputs.ERRORES_ANTES }}
+        if: ${{ steps.comparar.outputs.errores_despues < steps.comparar.outputs.errores_antes }}
         run: |
           for f in $(find src/main/java -name "*.mejorado.java"); do
             mv "$f" "${f%.mejorado.java}.java"
@@ -154,5 +154,5 @@ jobs:
           git push origin main
 
       - name: Finalizar si no mejora calidad
-        if: ${{ steps.comparar.outputs.ERRORES_DESPUES >= steps.comparar.outputs.ERRORES_ANTES }}
+        if: ${{ steps.comparar.outputs.errores_despues >= steps.comparar.outputs.errores_antes }}
         run: echo "No se hizo merge: la calidad no mejoró."
