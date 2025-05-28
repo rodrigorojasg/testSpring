@@ -30,7 +30,7 @@ jobs:
       - name: Compilar y testear el proyecto
         run: mvn clean verify
 
-      - name: Análisis original con SonarCloud (src/)
+      - name: Análisis original con SonarCloud (src/main/java)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -38,7 +38,7 @@ jobs:
             -Dsonar.projectKey=rodrigorojasg_testSpring \
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.projectName="testSpring Original" \
-            -Dsonar.sources=src \
+            -Dsonar.sources=src/main/java \
             -Dsonar.tests=src/test \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.host.url=https://sonarcloud.io \
@@ -98,14 +98,14 @@ jobs:
 
       - name: Preparar carpeta src-analizado/ con clases mejoradas
         run: |
-          mkdir -p src-analizado
+          mkdir -p src-analizado/main/java
           for f in $(find . -name "*.mejorado.java"); do
             destino="src-analizado/$(echo $f | cut -d/ -f2- | sed 's/\.mejorado//')"
             mkdir -p $(dirname "$destino")
             cp "$f" "$destino"
           done
 
-      - name: Análisis con SonarCloud del código mejorado (src-analizado/)
+      - name: Análisis con SonarCloud del código mejorado (src-analizado/main/java)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -113,7 +113,7 @@ jobs:
             -Dsonar.projectKey=rodrigorojasg_testSpring_gpt \
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.projectName="testSpring GPT Mejorado" \
-            -Dsonar.sources=src-analizado \
+            -Dsonar.sources=src-analizado/main/java \
             -Dsonar.tests=src/test \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.host.url=https://sonarcloud.io \
