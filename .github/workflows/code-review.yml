@@ -55,7 +55,7 @@ jobs:
         run: |
           while read COMPONENT; do
             # Convertir nombre de clase (package.ClassName) a ruta .java
-            FILE="src/main/java/$(echo $COMPONENT | sed 's/\./\//g').java"
+            FILE=$(echo "$COMPONENT" | sed 's/^rodrigorojasg_testSpring://')
             echo "Procesando: $FILE"
 
             if [ -f "$FILE" ]; then
