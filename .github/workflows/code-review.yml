@@ -9,9 +9,6 @@ jobs:
   sonar-gpt-review:
     name: Análisis y mejora automática
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
 
     steps:
       - name: Checkout del código
@@ -37,7 +34,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN -Dproject.settings=sonar-original/sonar-project.properties
+          mvn sonar:sonar \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dproject.settings=sonar-original/sonar-project.properties
 
       - name: Guardar reporte original
         env:
@@ -91,7 +91,7 @@ jobs:
             fi
           done < archivos_afectados.txt
 
-      - name: Preparar carpeta src-analizado/ con estructura de clases mejoradas
+      - name: Preparar carpeta src-analizado/ con clases mejoradas
         run: |
           mkdir -p src-analizado
           for f in $(find . -name "*.mejorado.java"); do
@@ -104,7 +104,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN -Dproject.settings=sonar-mejorado/sonar-project.properties
+          mvn sonar:sonar \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dproject.settings=sonar-mejorado/sonar-project.properties
 
       - name: Guardar reporte del código mejorado
         env:
