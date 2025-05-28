@@ -40,40 +40,45 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN
 
-      - name: Simular detección de errores en Sonar
-        id: check_sonar
+      - name: Consultar archivos afectados desde SonarCloud
+        id: sonar_files
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          # Aquí deberías consultar la API REST de SonarCloud (requiere script adicional)
-          echo "SONAR_ERRORS=true" >> $GITHUB_ENV
+          curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
+            -H "Authorization: Bearer $SONAR_TOKEN" |
+            jq -r '.issues[].component' | sort -u > archivos_afectados.txt
 
-      - name: Llamar a OpenAI para sugerencias
-        if: env.SONAR_ERRORS == 'true'
+      - name: Enviar archivos con problemas a OpenAI
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          echo "Recopilando código para enviar a OpenAI..."
-          
-          FILE=src/main/java/com/tuempresa/tuapp/TuClase.java
-          CODE=$(cat $FILE | base64)
-          REPORT="Se encontraron problemas de calidad según SonarCloud."
+          while read COMPONENT; do
+            # Convertir nombre de clase (package.ClassName) a ruta .java
+            FILE="src/main/java/$(echo $COMPONENT | sed 's/\./\//g').java"
+            echo "Procesando: $FILE"
 
-          curl https://api.openai.com/v1/chat/completions \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "model": "gpt-4",
-              "messages": [
-                {"role": "system", "content": "Eres un asistente experto en Java Spring Boot que mejora código basado en informes de calidad."},
-                {"role": "user", "content": "Código (base64): '"$CODE"'\n\nInforme Sonar: '"$REPORT"'"}
-              ],
-              "temperature": 0.3
-            }' > gpt_response.json
+            if [ -f "$FILE" ]; then
+              CODE=$(base64 "$FILE" | tr -d '\n')
+              REPORT="Problemas detectados por SonarCloud en $COMPONENT"
 
-      - name: Ver contenido crudo de gpt_response.json
-        if: always()
-        run: |
-          echo "=== CONTENIDO GPT ==="
-          cat gpt_response.json
+              RESPONSE_FILE="gpt_response_$(basename $FILE .java).json"
+              curl -s https://api.openai.com/v1/chat/completions \
+                -H "Authorization: Bearer $OPENAI_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "model": "gpt-4",
+                  "messages": [
+                    {"role": "system", "content": "Eres un asistente experto en Java Spring Boot que mejora código según problemas de calidad."},
+                    {"role": "user", "content": "Este es el código (en base64): '"$CODE"'\n\nObservaciones Sonar: '"$REPORT"'."}
+                  ],
+                  "temperature": 0.3
+                }' > "$RESPONSE_FILE"
 
-      - name: Guardar respuesta de GPT
-        if: env.SONAR_ERRORS == 'true'
-        run: |
-          cat gpt_response.json | jq -r '.choices[0].message.content' > TuClase.mejorada.java
+              jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
+              echo "Respuesta guardada en: ${FILE%.java}.mejorado.java"
+            else
+              echo "Archivo no encontrado: $FILE"
+            fi
+          done < archivos_afectados.txt
+
