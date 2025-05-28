@@ -1,0 +1,73 @@
+name: SonarCloud + GPT para Spring Boot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sonar-gpt-review:
+    name: Análisis y revisión con GPT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Caché de Maven
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven
+
+      - name: Compilar y testear el proyecto
+        run: mvn clean verify
+
+      - name: Análisis con SonarCloud
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=tu_org_tu_proyecto \
+            -Dsonar.organization=tu_org \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN
+
+      - name: Simular detección de errores en Sonar
+        id: check_sonar
+        run: |
+          # Aquí deberías consultar la API REST de SonarCloud (requiere script adicional)
+          echo "SONAR_ERRORS=true" >> $GITHUB_ENV
+
+      - name: Llamar a OpenAI para sugerencias
+        if: env.SONAR_ERRORS == 'true'
+        run: |
+          echo "Recopilando código para enviar a OpenAI..."
+          
+          FILE=src/main/java/com/tuempresa/tuapp/TuClase.java
+          CODE=$(cat $FILE | base64)
+          REPORT="Se encontraron problemas de calidad según SonarCloud."
+
+          curl https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "gpt-4",
+              "messages": [
+                {"role": "system", "content": "Eres un asistente experto en Java Spring Boot que mejora código basado en informes de calidad."},
+                {"role": "user", "content": "Código (base64): '"$CODE"'\n\nInforme Sonar: '"$REPORT"'"}
+              ],
+              "temperature": 0.3
+            }' > gpt_response.json
+
+      - name: Guardar respuesta de GPT
+        if: env.SONAR_ERRORS == 'true'
+        run: |
+          cat gpt_response.json | jq -r '.choices[0].message.content' > TuClase.mejorada.java
