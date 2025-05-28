@@ -75,10 +75,23 @@ jobs:
                   "temperature": 0.3
                 }' > "$RESPONSE_FILE"
 
-              jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
-              echo "Respuesta guardada en: ${FILE%.java}.mejorado.java"
+              if jq -e '.choices[0].message.content' "$RESPONSE_FILE" > /dev/null 2>&1; then
+                jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
+                echo "Respuesta guardada en: ${FILE%.java}.mejorado.java"
+              else
+                echo "❌ Error procesando $FILE — respuesta inválida de OpenAI"
+                cat "$RESPONSE_FILE"
+              fi
+
             else
               echo "Archivo no encontrado: $FILE"
             fi
           done < archivos_afectados.txt
+
+          - name: Guardar archivos mejorados como artefacto
+          uses: actions/upload-artifact@v3
+          with:
+            name: archivos-mejorados
+            path: '**/*.mejorado.java'
+
 
