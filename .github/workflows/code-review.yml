@@ -1,4 +1,4 @@
-name: SonarCloud + GPT + Comparación
+name: SonarCloud + GPT + Análisis Comparado
 
 on:
   push:
@@ -33,24 +33,22 @@ jobs:
       - name: Compilar y testear el proyecto
         run: mvn clean verify
 
-      - name: Análisis inicial con SonarCloud
+      - name: Análisis original con SonarCloud (src/)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn sonar:sonar \
-            -Dsonar.projectKey=rodrigorojasg_testSpring \
-            -Dsonar.organization=rodrigorojasg \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=$SONAR_TOKEN
+          cd sonar-original
+          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
+          cd ..
 
-      - name: Guardar reporte original de SonarCloud
+      - name: Guardar reporte original
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
             -H "Authorization: Bearer $SONAR_TOKEN" > reporte_original.json
 
-      - name: Consultar archivos afectados desde SonarCloud
+      - name: Consultar archivos con errores
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -58,7 +56,7 @@ jobs:
             -H "Authorization: Bearer $SONAR_TOKEN" |
             jq -r '.issues[].component' | sort -u > archivos_afectados.txt
 
-      - name: Enviar archivos a OpenAI para mejora
+      - name: Llamar a OpenAI por cada archivo
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -78,14 +76,14 @@ jobs:
                   "model": "gpt-4",
                   "messages": [
                     {"role": "system", "content": "Eres un asistente experto en Java Spring Boot que mejora código según problemas de calidad."},
-                    {"role": "user", "content": "Este es el código (en base64): '"$CODE"'\n\nObservaciones Sonar: '"$REPORT"'."}
+                    {"role": "user", "content": "Este es el código fuente en base64: '"$CODE"'. A continuación, los problemas reportados por SonarCloud: '"$REPORT"'. Corrige el código aplicando mejoras que aborden los problemas mencionados, manteniendo la lógica intacta. ⚠️ IMPORTANTE: responde únicamente con el código fuente corregido, sin ningún texto adicional, comentario o encabezado."}
                   ],
                   "temperature": 0.3
                 }' > "$RESPONSE_FILE"
 
               if jq -e '.choices[0].message.content' "$RESPONSE_FILE" > /dev/null 2>&1; then
                 jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
-                echo "✅ Guardado: ${FILE%.java}.mejorado.java"
+                echo "✅ Generado: ${FILE%.java}.mejorado.java"
               else
                 echo "❌ Error con $FILE - respuesta inválida"
                 cat "$RESPONSE_FILE"
@@ -95,38 +93,35 @@ jobs:
             fi
           done < archivos_afectados.txt
 
-      - name: Reemplazar archivos originales por versiones mejoradas
+      - name: Preparar carpeta src-analizado/ con estructura de clases mejoradas
         run: |
+          mkdir -p src-analizado
           for f in $(find . -name "*.mejorado.java"); do
-            original="${f%.mejorado.java}.java"
-            echo "🔁 Reemplazando $original con versión mejorada"
-            mv "$f" "$original"
+            destino="src-analizado/$(echo $f | cut -d/ -f2- | sed 's/\.mejorado//')"
+            mkdir -p $(dirname "$destino")
+            cp "$f" "$destino"
           done
 
-      - name: Segundo análisis SonarCloud con código mejorado
+      - name: Análisis con SonarCloud del código mejorado (src-analizado/)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn sonar:sonar \
-            -Dsonar.projectKey=rodrigorojasg_testSpring \
-            -Dsonar.organization=rodrigorojasg \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=$SONAR_TOKEN
+          cd sonar-mejorado
+          mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
+          cd ..
 
-      - name: Guardar reporte posterior de SonarCloud
+      - name: Guardar reporte del código mejorado
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
-            -H "Authorization: Bearer $SONAR_TOKEN" > reporte_corregido.json
+          curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
+            -H "Authorization: Bearer $SONAR_TOKEN" > reporte_mejorado.json
 
-      - name: Comparar errores antes y después
+      - name: Comparar resultados de análisis
         run: |
-          echo "📊 Comparación de errores Sonar:"
-          echo "Antes de GPT:"
+          echo "📊 Comparación de errores:"
+          echo "ANTES:"
           jq '.issues | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_original.json
-
           echo ""
-          echo "Después de GPT:"
-          jq '.issues | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_corregido.json
-
+          echo "DESPUÉS (mejorado):"
+          jq '.issues | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_mejorado.json
