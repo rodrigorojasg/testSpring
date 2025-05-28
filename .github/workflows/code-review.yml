@@ -67,6 +67,12 @@ jobs:
               "temperature": 0.3
             }' > gpt_response.json
 
+      - name: Ver contenido crudo de gpt_response.json
+        if: always()
+        run: |
+          echo "=== CONTENIDO GPT ==="
+          cat gpt_response.json
+
       - name: Guardar respuesta de GPT
         if: env.SONAR_ERRORS == 'true'
         run: |
