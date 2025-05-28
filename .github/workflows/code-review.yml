@@ -1,4 +1,4 @@
-name: SonarCloud + GPT + Análisis Comparado
+name: SonarCloud + GPT + Comparación
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   sonar-gpt-review:
-    name: Análisis y mejora automática
+    name: Análisis, Mejora y Comparación
     runs-on: ubuntu-latest
 
     steps:
@@ -35,9 +35,13 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn sonar:sonar \
-            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.projectKey=rodrigorojasg_testSpring \
+            -Dsonar.organization=rodrigorojasg \
+            -Dsonar.projectName="testSpring Original" \
+            -Dsonar.sources=src \
+            -Dsonar.java.binaries=target/classes \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dproject.settings=sonar-original/sonar-project.properties
+            -Dsonar.login=$SONAR_TOKEN
 
       - name: Guardar reporte original
         env:
@@ -46,7 +50,7 @@ jobs:
           curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
             -H "Authorization: Bearer $SONAR_TOKEN" > reporte_original.json
 
-      - name: Consultar archivos con errores
+      - name: Detectar archivos con errores
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -54,7 +58,7 @@ jobs:
             -H "Authorization: Bearer $SONAR_TOKEN" |
             jq -r '.issues[].component' | sort -u > archivos_afectados.txt
 
-      - name: Llamar a OpenAI por cada archivo
+      - name: Llamar a OpenAI por cada archivo afectado
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -105,9 +109,13 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn sonar:sonar \
-            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.projectKey=rodrigorojasg_testSpring_gpt \
+            -Dsonar.organization=rodrigorojasg \
+            -Dsonar.projectName="testSpring GPT Mejorado" \
+            -Dsonar.sources=src-analizado \
+            -Dsonar.java.binaries=target/classes \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dproject.settings=sonar-mejorado/sonar-project.properties
+            -Dsonar.login=$SONAR_TOKEN
 
       - name: Guardar reporte del código mejorado
         env:
