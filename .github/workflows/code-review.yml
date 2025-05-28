@@ -35,8 +35,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           mvn sonar:sonar \
-            -Dsonar.projectKey=tu_org_tu_proyecto \
-            -Dsonar.organization=tu_org \
+            -Dsonar.projectKey=rodrigorojasg_testSpring \
+            -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN
 
