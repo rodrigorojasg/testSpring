@@ -83,7 +83,7 @@ jobs:
               fi
 
             else
-              echo "⚠️ Archivo no encontrado: $FILE"
+              echo "⚠️ Archivo NO encontrado: $FILE"
             fi
           done < archivos_afectados.txt
 
