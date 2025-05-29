@@ -45,11 +45,14 @@ jobs:
             -Dsonar.sources=src \
             -Dsonar.tests=src/test \
             -Dsonar.exclusions=src/test/** \
-            -Dsonar.java.binaries=target/classes
+            -Dsonar.java.binaries=target/classes > salida_sonar_original.txt
 
-          echo "⚠️  Análisis finalizado. Extrayendo severidades..."
-          errores_antes=$(grep -o 'severity":"[A-Z]\+"' target/sonar/report-task.txt | wc -l || true)
+          echo "=== Salida de Sonar ==="
+          cat salida_sonar_original.txt
+
+          errores_antes=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_original.txt | wc -l || true)
           echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
+
       - name: Obtener archivos con errores
         id: sonar_files
         env:
@@ -118,10 +121,14 @@ jobs:
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.sources=src-analizado \
+            -Dsonar.exclusions=src-analizado/test/** \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
 
-          errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l)
+          echo "=== Salida de Sonar GPT ==="
+          cat salida_sonar_gpt.txt
+
+          errores_despues=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_gpt.txt | wc -l)
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
       - name: Commit automático si hay mejora
