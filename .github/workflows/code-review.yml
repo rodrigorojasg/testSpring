@@ -118,38 +118,62 @@ jobs:
           curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
             -H "Authorization: Bearer $SONAR_TOKEN" > reporte_mejorado.json
 
-      - name: Comparar resultados por severidad y hacer commit si mejora
+      - name: Comparar resultados de análisis
+        id: comparar_errores
         run: |
           echo "📊 Comparación de severidades:"
-          original=$(jq '[.issues[] | {severity}] | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_original.json)
-          mejorado=$(jq '[.issues[] | {severity}] | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_mejorado.json)
 
-          echo "ANTES: $original"
-          echo "DESPUÉS: $mejorado"
+          echo "ANTES:"
+          cat reporte_original.json | jq '[.issues[]? | .severity // empty] |
+            map(
+              if . == "BLOCKER" then 10
+              elif . == "CRITICAL" then 7
+              elif . == "MAJOR" then 5
+              elif . == "MINOR" then 3
+              elif . == "INFO" then 1
+              else 0 end
+            ) | add // 0' > puntaje_antes.txt
 
-          puntuacion() {
-            jq -r 'map((.severity | ascii_downcase) as $s | {blocker: 5, critical: 4, major: 3, minor: 2, info: 1}[$s] * .count) | add' <<< "$1"
-          }
+          cat puntaje_antes.txt
+          puntaje_antes=$(cat puntaje_antes.txt)
+          echo "PUNTAJE_ANTES=$puntaje_antes" >> $GITHUB_ENV
 
-          puntaje_original=$(puntuacion "$original")
-          puntaje_mejorado=$(puntuacion "$mejorado")
+          echo "DESPUÉS:"
+          cat reporte_mejorado.json | jq '[.issues[]? | .severity // empty] |
+            map(
+              if . == "BLOCKER" then 10
+              elif . == "CRITICAL" then 7
+              elif . == "MAJOR" then 5
+              elif . == "MINOR" then 3
+              elif . == "INFO" then 1
+              else 0 end
+            ) | add // 0' > puntaje_despues.txt
 
-          echo "PUNTAJE_ANTES=$puntaje_original"
-          echo "PUNTAJE_DESPUES=$puntaje_mejorado"
+          cat puntaje_despues.txt
+          puntaje_despues=$(cat puntaje_despues.txt)
+          echo "PUNTAJE_DESPUES=$puntaje_despues" >> $GITHUB_ENV
 
-          if [ "$puntaje_mejorado" -lt "$puntaje_original" ]; then
-            echo "✅ Se detectó mejora, haciendo commit..."
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-
-            mkdir -p ci-reportes/iteracion-$ITERACION_ACTUAL
-            cp reporte_*.json ci-reportes/iteracion-$ITERACION_ACTUAL/
-            cp reportes_ci/* ci-reportes/iteracion-$ITERACION_ACTUAL/ || true
-
-            git add ci-reportes/ src/**/*.mejorado.java || true
-            git commit -m "🤖 Iteración $ITERACION_ACTUAL: mejora aplicada y reportes guardados"
-            git push origin main
+          if [ "$puntaje_despues" -lt "$puntaje_antes" ]; then
+            echo "MEJORA_SIGNIFICATIVA=true" >> $GITHUB_ENV
+            echo "✅ Mejora significativa detectada"
           else
-            echo "⛔ No se detectó mejora significativa en severidad, no se realiza commit."
+            echo "MEJORA_SIGNIFICATIVA=false" >> $GITHUB_ENV
+            echo "⛔ No se detectó mejora significativa en severidad"
           fi
 
+      - name: Commit automático si hay mejora significativa
+        if: env.MEJORA_SIGNIFICATIVA == 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
+          mkdir -p "$iter_dir"
+          cp reporte_original.json "$iter_dir/"
+          cp reporte_mejorado.json "$iter_dir/"
+          cp reportes_ci/* "$iter_dir/" || true
+
+          git add ci-reportes/
+          git add src/**/*.mejorado.java || true
+          git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada con reducción de severidades"
+          git push origin main
