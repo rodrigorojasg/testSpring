@@ -69,7 +69,7 @@ jobs:
           while read COMPONENT; do
             FILE=$(echo "$COMPONENT" | sed 's/^rodrigorojasg_testSpring://')
             if [ -f "$FILE" ]; then
-              CODE=$(base64 "$FILE" | tr -d '\n')
+              CODE_B64=$(base64 "$FILE" | tr -d '\n')
 
               REPORT=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=$COMPONENT&resolved=false" \
                 -H "Authorization: Bearer $SONAR_TOKEN" |
@@ -82,26 +82,30 @@ jobs:
 
               RESPONSE_FILE="reportes_ci/gpt_response_$(basename $FILE .java).json"
 
+              jq -n \
+                --arg model "gpt-4" \
+                --arg code "$CODE_B64" \
+                --arg report "$REPORT" \
+                --arg prompt "Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original." \
+                --arg instruction "Este es el código fuente en base64: \$code. A continuación, los problemas reportados por SonarCloud: \$report. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)." \
+                '{
+                  model: $model,
+                  messages: [
+                    { role: "system", content: $prompt },
+                    { role: "user", content: $instruction }
+                  ],
+                  temperature: 0.3
+                }' > payload.json
+
               curl -s https://api.openai.com/v1/chat/completions \
                 -H "Authorization: Bearer $OPENAI_API_KEY" \
                 -H "Content-Type: application/json" \
-                -d '{
-                  "model": "gpt-4",
-                  "messages": [
-                    {
-                      "role": "system",
-                      "content": "Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original."
-                    },
-                    {
-                      "role": "user",
-                      "content": "Este es el código fuente en base64: '"$CODE"'. A continuación, los problemas reportados por SonarCloud: '"$REPORT"'. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)."
-                    }
-                  ],
-                  "temperature": 0.3
-                }' > "$RESPONSE_FILE"
+                -d @payload.json > "$RESPONSE_FILE"
 
-              if jq -e '.choices[0].message.content' "$RESPONSE_FILE" > /dev/null 2>&1; then
-                jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
+              # Validar y extraer contenido corregido
+              RESPUESTA=$(jq -r '.choices[0].message.content' "$RESPONSE_FILE")
+              if echo "$RESPUESTA" | grep -q "public class"; then
+                echo "$RESPUESTA" > "${FILE%.java}.mejorado.java"
                 echo "✅ Generado: ${FILE%.java}.mejorado.java"
               else
                 echo "❌ Respuesta inválida para $FILE, guardando en errores_ci"
@@ -111,6 +115,7 @@ jobs:
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
           done < archivos_afectados.txt
+
 
       - name: Preparar carpeta src-analizado
         run: |
