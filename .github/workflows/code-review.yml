@@ -1,16 +1,16 @@
-name: SonarCloud + GPT para Spring Boot con Iteraciones
+name: SonarCloud + GPT para Spring Boot
 
 on:
   push:
     branches:
       - main
 
-env:
-  MAX_ITERACIONES_CI: 5
-
 jobs:
   sonar-gpt-review:
+    name: Análisis y mejora con GPT
     runs-on: ubuntu-latest
+    env:
+      MAX_ITERACIONES_CI: 5
 
     steps:
       - name: Checkout del código
@@ -22,29 +22,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Caché de Maven
+      - name: Cache de Maven
         uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven
 
-      - name: Determinar iteración actual
-        id: iteracion
-        run: |
-          iter=1
-          if [ -f .iteracion_ci ]; then
-            iter=$(cat .iteracion_ci)
-            iter=$((iter + 1))
-          fi
-          echo "$iter" > .iteracion_ci
-          echo "ITERACION_ACTUAL=$iter" >> $GITHUB_ENV
-
-      - name: Compilar y testear el proyecto
+      - name: Compilar y testear
         run: mvn clean verify
 
       - name: Análisis original con SonarCloud
-        id: sonar_original
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -52,41 +40,71 @@ jobs:
             -Dsonar.projectKey=rodrigorojasg_testSpring \
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=$SONAR_TOKEN > salida_sonar.txt
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.sources=src \
+            -Dsonar.java.binaries=target/classes > salida_sonar_original.txt
 
-          errores_antes=$(grep -o 'severity\":\"[A-Z]+\"' salida_sonar.txt | wc -l)
+          errores_antes=$(grep -o 'severity":"[A-Z]+"' salida_sonar_original.txt | wc -l)
           echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
 
-      - name: Llamar a OpenAI para sugerencias
+      - name: Obtener archivos con errores
+        id: sonar_files
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
+            -H "Authorization: Bearer $SONAR_TOKEN" | \
+            jq -r '.issues[].component' | sort -u > archivos_afectados.txt
+
+      - name: Mejoras con GPT
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          mkdir -p correcciones
-          for f in $(find src/main/java -name "*.java"); do
-            CODE=$(base64 "$f" | tr -d '\n')
-            curl -s https://api.openai.com/v1/chat/completions \
-              -H "Authorization: Bearer $OPENAI_API_KEY" \
-              -H "Content-Type: application/json" \
-              -d '{
-                "model": "gpt-4",
-                "messages": [
-                  {"role": "system", "content": "Eres un asistente experto en Java Spring Boot que mejora código según observaciones de calidad."},
-                  {"role": "user", "content": "Este es el código base64: '"$CODE"'\n\nCorrige problemas sin comentarios, solo devuelve el código completo corregido."}
-                ],
-                "temperature": 0.3
-              }' | jq -r '.choices[0].message.content' > "${f%.java}.mejorado.java"
-          done
+          mkdir -p reportes_ci
+          iteracion=1
+          echo "ITERACION_ACTUAL=$iteracion" >> $GITHUB_ENV
+
+          while read COMPONENT; do
+            FILE=$(echo "$COMPONENT" | sed 's/^rodrigorojasg_testSpring://')
+            echo "Procesando: $FILE"
+
+            if [ -f "$FILE" ]; then
+              CODE=$(base64 "$FILE" | tr -d '\n')
+              REPORT="Problemas detectados por SonarCloud en $COMPONENT"
+              RESPONSE_FILE="reportes_ci/gpt_response_$(basename $FILE .java).json"
+
+              curl -s https://api.openai.com/v1/chat/completions \
+                -H "Authorization: Bearer $OPENAI_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "model": "gpt-4",
+                  "messages": [
+                    {"role": "system", "content": "Eres un experto en Java Spring Boot que mejora el código según los problemas reportados por Sonar."},
+                    {"role": "user", "content": "Este es el código (en base64): '"$CODE"'\n\nObservaciones Sonar: '"$REPORT"'"}
+                  ],
+                  "temperature": 0.3
+                }' > "$RESPONSE_FILE"
+
+              jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
+              echo "Guardado: ${FILE%.java}.mejorado.java"
+            else
+              echo "Archivo no encontrado: $FILE"
+            fi
+          done < archivos_afectados.txt
 
       - name: Análisis de código mejorado
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          if [ -d src ]; then
-            cp -r src src-analizado
-          else
-            echo "❌ Error: src no existe"
+          echo "Contenido actual:"
+          ls -la
+
+          if [ ! -d src ]; then
+            echo "❌ No se encontró el directorio src/"
             exit 1
           fi
+
+          cp -r src src-analizado
 
           for f in $(find src-analizado -name "*.mejorado.java"); do
             mv "$f" "${f%.mejorado.java}.java"
@@ -100,23 +118,10 @@ jobs:
             -Dsonar.java.binaries=target/classes \
             -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
 
-          errores_despues=$(grep -o 'severity\":\"[A-Z]+\"' salida_sonar_gpt.txt | wc -l)
+          errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l)
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
-      - name: Crear reportes
-        run: |
-          mkdir -p reportes_ci
-          echo "Iteración: $ITERACION_ACTUAL" > reportes_ci/reporte_iteracion_${ITERACION_ACTUAL}.txt
-          echo "Errores ANTES: $ERRORES_ANTES" >> reportes_ci/reporte_iteracion_${ITERACION_ACTUAL}.txt
-          echo "Errores DESPUÉS: $ERRORES_DESPUES" >> reportes_ci/reporte_iteracion_${ITERACION_ACTUAL}.txt
-          for f in $(find src/main/java -name "*.java"); do
-            mejorado="${f%.java}.mejorado.java"
-            if [ -f "$mejorado" ]; then
-              diff "$f" "$mejorado" > "reportes_ci/diff_$(basename "$f" .java).txt" || true
-            fi
-          done
-
-      - name: Subir reportes y mejoras al repositorio si mejora la calidad
+      - name: Commit automático si hay mejora
         if: env.ERRORES_DESPUES < env.ERRORES_ANTES
         run: |
           git config user.name "github-actions"
@@ -124,14 +129,11 @@ jobs:
 
           iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
           mkdir -p "$iter_dir"
+          cp salida_sonar_original.txt "$iter_dir/sonar_original.txt" || true
+          cp salida_sonar_gpt.txt "$iter_dir/sonar_mejorado.txt" || true
           cp reportes_ci/* "$iter_dir/" || true
 
-          for f in $(find src/main/java -name "*.mejorado.java"); do
-            mv "$f" "${f%.mejorado.java}.java"
-          done
-
-          git add src/main/java
           git add ci-reportes/
-          git add .iteracion_ci || true
-          git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejoras GPT + reportes"
+          git add src/**/*.mejorado.java || true
+          git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada y reportes guardados"
           git push origin main
