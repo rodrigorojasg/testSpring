@@ -42,7 +42,7 @@ jobs:
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.sources=src \
+            -Dsonar.sources=src/main \
             -Dsonar.tests=src/test \
             -Dsonar.exclusions=**/*.txt,**/*.md,**/reportes_ci/**,**/*.json \
             -Dsonar.java.binaries=target/classes
