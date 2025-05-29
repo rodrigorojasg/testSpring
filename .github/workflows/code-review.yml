@@ -43,6 +43,8 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.sources=src \
+            -Dsonar.tests=src/test \
+            -Dsonar.exclusions=src/test/** \
             -Dsonar.java.binaries=target/classes
 
           echo "⚠️  Análisis finalizado. Extrayendo severidades..."
