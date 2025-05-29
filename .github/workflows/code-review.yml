@@ -42,10 +42,10 @@ jobs:
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.sources=src/main \
-            -Dsonar.tests=src/test \
-            -Dsonar.exclusions=**/*.txt,**/*.md,**/reportes_ci/**,**/*.json \
-            -Dsonar.java.binaries=target/classes
+            -Dsonar.sources=src/main/java \
+            -Dsonar.tests=src/test/java \
+            -Dsonar.java.binaries=target/classes \
+            -Dsonar.java.test.binaries=target/test-classes
 
           echo "⚠️  Análisis finalizado. Extrayendo severidades..."
           errores_antes=$(grep -o 'severity":"[A-Z]\+"' target/sonar/report-task.txt | wc -l || true)
@@ -83,19 +83,14 @@ jobs:
                 -d '{
                   "model": "gpt-4",
                   "messages": [
-                    {"role": "system", "content": "Eres un experto en Java Spring Boot. Tu única tarea es corregir código fuente Java para mejorar su calidad y resolver problemas reportados por SonarCloud. Devuelve únicamente el código corregido en formato Java válido, sin comentarios ni explicaciones adicionales. No agregues texto fuera del bloque de código."},
-                    {"role": "user", "content": "Este es el código en base64: '"$CODE"'\n\nObservaciones Sonar: '"$REPORT"'"}
+                    {"role": "system", "content": "Eres un experto en Java Spring Boot que mejora el código según los problemas reportados por Sonar. El código corregido debe estar completo y compilable."},
+                    {"role": "user", "content": "Este es el código (en base64): '"$CODE"'\n\nObservaciones Sonar: '"$REPORT"'"}
                   ],
                   "temperature": 0.3
                 }' > "$RESPONSE_FILE"
 
-              if jq -e '.choices[0].message.content' "$RESPONSE_FILE" > /dev/null 2>&1; then
-                jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
-                echo "Guardado: ${FILE%.java}.mejorado.java"
-              else
-                echo "❌ Error procesando respuesta de GPT para $FILE"
-                cat "$RESPONSE_FILE"
-              fi
+              jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
+              echo "Guardado: ${FILE%.java}.mejorado.java"
             else
               echo "Archivo no encontrado: $FILE"
             fi
@@ -123,12 +118,13 @@ jobs:
             -Dsonar.projectKey=rodrigorojasg_testSpring_gpt \
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.sources=src-analizado \
-            -Dsonar.exclusions=**/*.txt,**/*.md,**/reportes_ci/**,**/*.json \
+            -Dsonar.sources=src-analizado/main/java \
+            -Dsonar.tests=src-analizado/test/java \
             -Dsonar.java.binaries=target/classes \
-            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt || true
+            -Dsonar.java.test.binaries=target/test-classes \
+            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
 
-          errores_despues=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_gpt.txt | wc -l || echo 0)
+          errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l)
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
       - name: Commit automático si hay mejora
