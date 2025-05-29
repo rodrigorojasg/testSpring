@@ -128,7 +128,11 @@ jobs:
           echo "=== Salida de Sonar GPT ==="
           cat salida_sonar_gpt.txt
 
-          errores_despues=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_gpt.txt | wc -l)
+          if grep -q 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt; then
+            errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l)
+          else
+            errores_despues=0
+          fi
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
       - name: Commit automático si hay mejora
