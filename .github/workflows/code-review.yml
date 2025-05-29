@@ -124,8 +124,14 @@ jobs:
             -Dsonar.java.test.binaries=target/test-classes \
             -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
 
-          errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l)
-          echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
+            echo "⌛ Esperando unos segundos para que los resultados de Sonar estén disponibles..."
+            sleep 10
+
+            errores_despues=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
+              -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total')
+
+            echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
+
 
       - name: Commit automático si hay mejora
         if: env.ERRORES_DESPUES < env.ERRORES_ANTES
