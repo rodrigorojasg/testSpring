@@ -163,6 +163,8 @@ jobs:
 
       - name: Commit automático si hay mejora significativa
         if: env.MEJORA_SIGNIFICATIVA == 'true'
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -176,4 +178,6 @@ jobs:
           git add ci-reportes/
           git add src/**/*.mejorado.java || true
           git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada con reducción de severidades"
+
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
           git push origin main
