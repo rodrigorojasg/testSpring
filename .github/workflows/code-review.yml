@@ -135,29 +135,29 @@ jobs:
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
 
-- name: Commit automático si hay mejora
-  run: |
-    echo "Comparación de errores:"
-    echo "ERRORES_ANTES=$ERRORES_ANTES"
-    echo "ERRORES_DESPUES=$ERRORES_DESPUES"
+      - name: Commit automático si hay mejora
+        run: |
+          echo "Comparación de errores:"
+          echo "ERRORES_ANTES=$ERRORES_ANTES"
+          echo "ERRORES_DESPUES=$ERRORES_DESPUES"
 
-    if [ "$ERRORES_DESPUES" -lt "$ERRORES_ANTES" ]; then
-      echo "✅ Mejora detectada, realizando commit..."
+          if [ "$ERRORES_DESPUES" -lt "$ERRORES_ANTES" ]; then
+            echo "✅ Mejora detectada, realizando commit..."
 
-      git config user.name "github-actions"
-      git config user.email "github-actions@github.com"
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
 
-      iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
-      mkdir -p "$iter_dir"
-      cp salida_sonar_original.txt "$iter_dir/sonar_original.txt" || true
-      cp salida_sonar_gpt.txt "$iter_dir/sonar_mejorado.txt" || true
-      cp reportes_ci/* "$iter_dir/" || true
+            iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
+            mkdir -p "$iter_dir"
+            cp salida_sonar_original.txt "$iter_dir/sonar_original.txt" || true
+            cp salida_sonar_gpt.txt "$iter_dir/sonar_mejorado.txt" || true
+            cp reportes_ci/* "$iter_dir/" || true
 
-      git add ci-reportes/
-      git add src/**/*.mejorado.java || true
-      git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada y reportes guardados"
-      git push origin main
-    else
-      echo "⛔ No se detectó mejora, no se realiza commit."
-    fi
+            git add ci-reportes/
+            git add src/**/*.mejorado.java || true
+            git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada y reportes guardados"
+            git push origin main
+          else
+            echo "⛔ No se detectó mejora, no se realiza commit."
+          fi
 
