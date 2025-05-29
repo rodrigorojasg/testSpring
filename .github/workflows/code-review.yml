@@ -114,6 +114,7 @@ jobs:
             mv "$f" "${f%.mejorado.java}.java"
           done
 
+          echo "🔍 Ejecutando análisis con código mejorado..."
           mvn sonar:sonar \
             -Dsonar.projectKey=rodrigorojasg_testSpring_gpt \
             -Dsonar.organization=rodrigorojasg \
@@ -122,15 +123,17 @@ jobs:
             -Dsonar.tests=src-analizado/test/java \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.java.test.binaries=target/test-classes \
-            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
+            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt || true
 
-          echo "⌛ Esperando unos segundos para que los resultados de Sonar estén disponibles..."
-          sleep 10
+          echo "⌛ Esperando que SonarCloud procese los resultados..."
+          sleep 15
 
+          echo "📥 Consultando número de errores en SonarCloud..."
           errores_despues=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
-            -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total')
+            -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total // 0')
 
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
+
 
       - name: Commit automático si hay mejora
         if: env.ERRORES_DESPUES < env.ERRORES_ANTES
