@@ -169,6 +169,9 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
+          # Establece la autenticación con GH_PAT al inicio
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+
           iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
           mkdir -p "$iter_dir"
           cp reporte_original.json "$iter_dir/"
@@ -178,6 +181,4 @@ jobs:
           git add ci-reportes/
           git add src/**/*.mejorado.java || true
           git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada con reducción de severidades"
-
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
           git push origin main
