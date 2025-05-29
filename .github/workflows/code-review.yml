@@ -171,6 +171,19 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
 
+          echo "🔍 Verificando acceso al repositorio remoto con token..."
+          git remote -v
+          curl -s -H "Authorization: token ${GH_PAT}" \
+               https://api.github.com/repos/${{ github.repository }} > repo_check.json
+
+          if grep -q '"permissions":' repo_check.json && grep -q '"push": true' repo_check.json; then
+            echo "✅ Token tiene permisos de push"
+          else
+            echo "❌ Token NO tiene permisos de push al repositorio. Revisa el PAT en GH_PAT"
+            cat repo_check.json
+            exit 1
+          fi
+
           iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
           mkdir -p "$iter_dir"
           cp reporte_original.json "$iter_dir/"
