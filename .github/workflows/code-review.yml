@@ -96,8 +96,9 @@ jobs:
                     },
                     {
                       "role": "user",
-                      "content": "Este es el código fuente en base64: '"$CODE"'. Problemas detectados por SonarCloud: '"$REPORT"'. ⚠️ IMPORTANTE: responde solo con el código fuente Java mejorado, sin comentarios adicionales, sin encabezados, sin explicaciones y asegurándote de que sea una clase Java válida y compilable."
+                      "content": "Este es el código fuente en base64: [BASE64]. A continuación, los problemas reportados por SonarCloud: [LISTADO]. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)."
                     }
+
                   ],
                   "temperature": 0.3
                 }' > "$RESPONSE_FILE"
@@ -189,31 +190,20 @@ jobs:
             echo "⛔ No se detectó mejora significativa en severidad"
           fi
 
+
       - name: Commit automático si hay mejora significativa
         if: env.MEJORA_SIGNIFICATIVA == 'true'
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          echo "🔐 Configurando Git"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          echo "🔐 Configurando acceso con token"
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
-          echo "🔧 Confirmando nuevo remoto:"
-          git remote -v
 
-          echo "🔍 Verificando permisos del token"
-          curl -s -H "Authorization: token ${GH_PAT}" \
-               https://api.github.com/repos/${{ github.repository }} > repo_check.json
-
-          if grep -q '"permissions":' repo_check.json && grep -q '"push": true' repo_check.json; then
-            echo "✅ Token tiene permisos de push"
-          else
-            echo "❌ Token no tiene permisos suficientes"
-            cat repo_check.json
-            exit 1
-          fi
+          # Hacer pull con rebase para evitar errores por cambios remotos
+          git fetch origin
+          git pull --rebase origin main
 
           iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
           mkdir -p "$iter_dir"
