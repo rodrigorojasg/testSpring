@@ -1,4 +1,4 @@
-name: SonarCloud + GPT para Spring Boot
+name: SonarCloud + GPT + Comparación + Iteraciones
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   sonar-gpt-review:
-    name: Análisis y revisión con GPT
+    name: Análisis, Mejora y Comparación
     runs-on: ubuntu-latest
     env:
       MAX_ITERACIONES_CI: 5
@@ -22,7 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Caché de Maven
+      - name: Cache de Maven
         uses: actions/cache@v3
         with:
           path: ~/.m2
@@ -36,42 +36,37 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          echo "🔍 Ejecutando análisis Sonar original..."
           mvn sonar:sonar \
             -Dsonar.projectKey=rodrigorojasg_testSpring \
             -Dsonar.organization=rodrigorojasg \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.projectName="testSpring Original" \
             -Dsonar.sources=src/main/java \
-            -Dsonar.tests=src/test/java \
+            -Dsonar.tests=src/test \
             -Dsonar.java.binaries=target/classes \
-            -Dsonar.java.test.binaries=target/test-classes
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN
 
-          echo "⚠️  Análisis finalizado. Extrayendo severidades..."
-          errores_antes=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_original.txt | wc -l || true)
-          echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
-
-      - name: Obtener archivos con errores
-        id: sonar_files
+      - name: Guardar reporte original
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
-            -H "Authorization: Bearer $SONAR_TOKEN" | \
-            jq -r '.issues[].component' | sort -u > archivos_afectados.txt
+            -H "Authorization: Bearer $SONAR_TOKEN" > reporte_original.json
 
-      - name: Mejoras con GPT
+      - name: Detectar archivos con errores
+        run: |
+          jq -r '.issues[].component' reporte_original.json | sort -u > archivos_afectados.txt
+
+      - name: Llamar a OpenAI por cada archivo afectado
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          iter=1
+          echo "ITERACION_ACTUAL=$iter" >> $GITHUB_ENV
           mkdir -p reportes_ci
-          iteracion=1
-          echo "ITERACION_ACTUAL=$iteracion" >> $GITHUB_ENV
 
           while read COMPONENT; do
             FILE=$(echo "$COMPONENT" | sed 's/^rodrigorojasg_testSpring://')
-            echo "Procesando: $FILE"
-
             if [ -f "$FILE" ]; then
               CODE=$(base64 "$FILE" | tr -d '\n')
               REPORT="Problemas detectados por SonarCloud en $COMPONENT"
@@ -83,81 +78,78 @@ jobs:
                 -d '{
                   "model": "gpt-4",
                   "messages": [
-                    {"role": "system", "content": "Eres un experto en Java Spring Boot. Recibirás un archivo en base64 y una descripción de los errores SonarCloud. Tu única tarea es devolver el código Java corregido, completo, compilable y sin encabezados explicativos. No incluyas ningún texto adicional. Solo el código fuente Java."},
-                    {"role": "user", "content": "Código en base64:\n\n'"$CODE"'\n\nErrores SonarCloud:\n\n'"$REPORT"'\n\nDevuelve solo el código Java corregido. NO EXPLIQUES NADA."}
+                    {"role": "system", "content": "Eres un asistente experto en Java Spring Boot que mejora código según problemas de calidad."},
+                    {"role": "user", "content": "Este es el código fuente en base64: '"$CODE"'. A continuación, los problemas reportados por SonarCloud: '"$REPORT"'. Corrige el código aplicando mejoras que aborden los problemas mencionados, manteniendo la lógica intacta. ⚠️ IMPORTANTE: responde únicamente con el código fuente corregido, sin ningún texto adicional, comentario o encabezado."}
                   ],
                   "temperature": 0.3
                 }' > "$RESPONSE_FILE"
 
               jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
-              echo "Guardado: ${FILE%.java}.mejorado.java"
-            else
-              echo "Archivo no encontrado: $FILE"
             fi
           done < archivos_afectados.txt
 
-      - name: Análisis de código mejorado
+      - name: Preparar carpeta src-analizado
+        run: |
+          mkdir -p src-analizado/main/java
+          for f in $(find . -name "*.mejorado.java"); do
+            destino="src-analizado/$(echo $f | cut -d/ -f2- | sed 's/\.mejorado//')"
+            mkdir -p $(dirname "$destino")
+            cp "$f" "$destino"
+          done
+
+      - name: Análisis con SonarCloud del código mejorado
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          echo "Contenido actual:"
-          ls -la
-
-          if [ ! -d src ]; then
-            echo "❌ No se encontró el directorio src/"
-            exit 1
-          fi
-
-          cp -r src src-analizado
-
-          for f in $(find src-analizado -name "*.mejorado.java"); do
-            mv "$f" "${f%.mejorado.java}.java"
-          done
-
-          echo "🔍 Ejecutando análisis con código mejorado..."
           mvn sonar:sonar \
             -Dsonar.projectKey=rodrigorojasg_testSpring_gpt \
             -Dsonar.organization=rodrigorojasg \
-            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.projectName="testSpring GPT Mejorado" \
             -Dsonar.sources=src-analizado/main/java \
-            -Dsonar.tests=src-analizado/test/java \
+            -Dsonar.tests=src/test \
             -Dsonar.java.binaries=target/classes \
-            -Dsonar.java.test.binaries=target/test-classes \
-            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt || true
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN
 
-          echo "⌛ Esperando que SonarCloud procese los resultados..."
-          sleep 15
-
-          echo "📥 Consultando número de errores en SonarCloud..."
-          errores_despues=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
-            -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total // 0')
-
-          echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
-
-
-      - name: Commit automático si hay mejora
+      - name: Guardar reporte mejorado
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          echo "Comparación de errores:"
-          echo "ERRORES_ANTES=$ERRORES_ANTES"
-          echo "ERRORES_DESPUES=$ERRORES_DESPUES"
+          curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
+            -H "Authorization: Bearer $SONAR_TOKEN" > reporte_mejorado.json
 
-          if [ "$ERRORES_DESPUES" -lt "$ERRORES_ANTES" ]; then
-            echo "✅ Mejora detectada, realizando commit..."
+      - name: Comparar resultados por severidad y hacer commit si mejora
+        run: |
+          echo "📊 Comparación de severidades:"
+          original=$(jq '[.issues[] | {severity}] | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_original.json)
+          mejorado=$(jq '[.issues[] | {severity}] | group_by(.severity) | map({severity: .[0].severity, count: length})' reporte_mejorado.json)
 
+          echo "ANTES: $original"
+          echo "DESPUÉS: $mejorado"
+
+          puntuacion() {
+            jq -r 'map((.severity | ascii_downcase) as $s | {blocker: 5, critical: 4, major: 3, minor: 2, info: 1}[$s] * .count) | add' <<< "$1"
+          }
+
+          puntaje_original=$(puntuacion "$original")
+          puntaje_mejorado=$(puntuacion "$mejorado")
+
+          echo "PUNTAJE_ANTES=$puntaje_original"
+          echo "PUNTAJE_DESPUES=$puntaje_mejorado"
+
+          if [ "$puntaje_mejorado" -lt "$puntaje_original" ]; then
+            echo "✅ Se detectó mejora, haciendo commit..."
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
 
-            iter_dir="ci-reportes/iteracion-${ITERACION_ACTUAL}"
-            mkdir -p "$iter_dir"
-            cp salida_sonar_original.txt "$iter_dir/sonar_original.txt" || true
-            cp salida_sonar_gpt.txt "$iter_dir/sonar_mejorado.txt" || true
-            cp reportes_ci/* "$iter_dir/" || true
+            mkdir -p ci-reportes/iteracion-$ITERACION_ACTUAL
+            cp reporte_*.json ci-reportes/iteracion-$ITERACION_ACTUAL/
+            cp reportes_ci/* ci-reportes/iteracion-$ITERACION_ACTUAL/ || true
 
-            git add ci-reportes/
-            git add src/**/*.mejorado.java || true
-            git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada y reportes guardados"
+            git add ci-reportes/ src/**/*.mejorado.java || true
+            git commit -m "🤖 Iteración $ITERACION_ACTUAL: mejora aplicada y reportes guardados"
             git push origin main
           else
-            echo "⛔ No se detectó mejora, no se realiza commit."
+            echo "⛔ No se detectó mejora significativa en severidad, no se realiza commit."
           fi
 
