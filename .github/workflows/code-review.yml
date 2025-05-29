@@ -36,18 +36,17 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          echo "🔍 Ejecutando análisis Sonar original..."
           mvn sonar:sonar \
             -Dsonar.projectKey=rodrigorojasg_testSpring \
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.sources=src \
-            -Dsonar.java.binaries=target/classes > salida_sonar_original.txt
+            -Dsonar.java.binaries=target/classes
 
-          echo "=== Salida de Sonar ==="
-          cat salida_sonar_original.txt
-
-          errores_antes=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_original.txt | wc -l)
+          echo "⚠️  Análisis finalizado. Extrayendo severidades..."
+          errores_antes=$(grep -o 'severity":"[A-Z]\+"' target/sonar/report-task.txt | wc -l || true)
           echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
       - name: Obtener archivos con errores
         id: sonar_files
