@@ -48,7 +48,8 @@ jobs:
             -Dsonar.java.test.binaries=target/test-classes
 
           echo "⚠️  Análisis finalizado. Extrayendo severidades..."
-          errores_antes=$(grep -o 'severity":"[A-Z]\+"' target/sonar/report-task.txt | wc -l || true)
+          errores_antes=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
+            -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total')
           echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
 
       - name: Obtener archivos con errores
@@ -122,16 +123,15 @@ jobs:
             -Dsonar.tests=src-analizado/test/java \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.java.test.binaries=target/test-classes \
-            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
+            -Dsonar.login=$SONAR_TOKEN
 
-            echo "⌛ Esperando unos segundos para que los resultados de Sonar estén disponibles..."
-            sleep 10
+          echo "⌛ Esperando unos segundos para que los resultados de Sonar estén disponibles..."
+          sleep 10
 
-            errores_despues=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
-              -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total')
+          errores_despues=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring_gpt&resolved=false" \
+            -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total')
 
-            echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
-
+          echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
       - name: Commit automático si hay mejora
         if: env.ERRORES_DESPUES < env.ERRORES_ANTES
