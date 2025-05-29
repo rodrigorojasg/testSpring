@@ -105,13 +105,22 @@ jobs:
 
               # Validar y extraer contenido corregido
               RESPUESTA=$(jq -r '.choices[0].message.content' "$RESPONSE_FILE")
-              if echo "$RESPUESTA" | grep -q "public class"; then
-                echo "$RESPUESTA" > "${FILE%.java}.mejorado.java"
-                echo "✅ Generado: ${FILE%.java}.mejorado.java"
+              ARCHIVO_SALIDA="${FILE%.java}.mejorado.java"
+              echo "$RESPUESTA" > "$ARCHIVO_SALIDA"
+
+              # Verificar si contiene código compilable
+              if grep -q "public class" "$ARCHIVO_SALIDA"; then
+                echo "✅ Generado: $ARCHIVO_SALIDA"
               else
-                echo "❌ Respuesta inválida para $FILE, guardando en errores_ci"
-                cp "$RESPONSE_FILE" "errores_ci/error_$(basename $FILE .java).json"
+                echo "❌ Contenido inesperado en $ARCHIVO_SALIDA, moviendo a errores_ci"
+                mkdir -p errores_ci
+                mv "$ARCHIVO_SALIDA" "errores_ci/$(basename "$ARCHIVO_SALIDA")"
               fi
+
+            else
+              echo "⚠️ Archivo no encontrado: $FILE"
+            fi
+
             else
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
