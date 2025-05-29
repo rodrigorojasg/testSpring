@@ -48,8 +48,7 @@ jobs:
             -Dsonar.java.test.binaries=target/test-classes
 
           echo "⚠️  Análisis finalizado. Extrayendo severidades..."
-          errores_antes=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=rodrigorojasg_testSpring&resolved=false" \
-            -H "Authorization: Bearer $SONAR_TOKEN" | jq '.total')
+          errores_antes=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_original.txt | wc -l || true)
           echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
 
       - name: Obtener archivos con errores
@@ -84,8 +83,8 @@ jobs:
                 -d '{
                   "model": "gpt-4",
                   "messages": [
-                    {"role": "system", "content": "Eres un experto en Java Spring Boot que mejora el código según los problemas reportados por Sonar. El código corregido debe estar completo y compilable."},
-                    {"role": "user", "content": "Este es el código (en base64): '"$CODE"'\n\nObservaciones Sonar: '"$REPORT"'"}
+                    {"role": "system", "content": "Eres un experto en Java Spring Boot. Recibirás un archivo en base64 y una descripción de los errores SonarCloud. Tu única tarea es devolver el código Java corregido, completo, compilable y sin encabezados explicativos. No incluyas ningún texto adicional. Solo el código fuente Java."},
+                    {"role": "user", "content": "Código en base64:\n\n'"$CODE"'\n\nErrores SonarCloud:\n\n'"$REPORT"'\n\nDevuelve solo el código Java corregido. NO EXPLIQUES NADA."}
                   ],
                   "temperature": 0.3
                 }' > "$RESPONSE_FILE"
@@ -123,7 +122,7 @@ jobs:
             -Dsonar.tests=src-analizado/test/java \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.java.test.binaries=target/test-classes \
-            -Dsonar.login=$SONAR_TOKEN
+            -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
 
           echo "⌛ Esperando unos segundos para que los resultados de Sonar estén disponibles..."
           sleep 10
