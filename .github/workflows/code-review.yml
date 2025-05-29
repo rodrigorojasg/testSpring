@@ -106,6 +106,7 @@ jobs:
               # Validar y extraer contenido corregido
               RESPUESTA=$(jq -r '.choices[0].message.content' "$RESPONSE_FILE")
               ARCHIVO_SALIDA="${FILE%.java}.mejorado.java"
+
               echo "$RESPUESTA" > "$ARCHIVO_SALIDA"
 
               # Verificar si contiene código compilable
@@ -116,11 +117,6 @@ jobs:
                 mkdir -p errores_ci
                 mv "$ARCHIVO_SALIDA" "errores_ci/$(basename "$ARCHIVO_SALIDA")"
               fi
-
-            else
-              echo "⚠️ Archivo no encontrado: $FILE"
-            fi
-
             else
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
