@@ -166,20 +166,23 @@ jobs:
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          echo "🔐 Configurando autenticación Git"
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+          echo "🔐 Configurando Git"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
-          echo "🔍 Verificando acceso al repositorio remoto con token..."
+          echo "🔐 Configurando acceso con token"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+          echo "🔧 Confirmando nuevo remoto:"
           git remote -v
+
+          echo "🔍 Verificando permisos del token"
           curl -s -H "Authorization: token ${GH_PAT}" \
                https://api.github.com/repos/${{ github.repository }} > repo_check.json
 
           if grep -q '"permissions":' repo_check.json && grep -q '"push": true' repo_check.json; then
             echo "✅ Token tiene permisos de push"
           else
-            echo "❌ Token NO tiene permisos de push al repositorio. Revisa el PAT en GH_PAT"
+            echo "❌ Token no tiene permisos suficientes"
             cat repo_check.json
             exit 1
           fi
