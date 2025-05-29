@@ -64,19 +64,17 @@ jobs:
         run: |
           iter=1
           echo "ITERACION_ACTUAL=$iter" >> $GITHUB_ENV
-          mkdir -p reportes_ci
+          mkdir -p reportes_ci errores_ci
 
           while read COMPONENT; do
             FILE=$(echo "$COMPONENT" | sed 's/^rodrigorojasg_testSpring://')
             if [ -f "$FILE" ]; then
               CODE=$(base64 "$FILE" | tr -d '\n')
 
-              # Obtener problemas reales reportados por SonarCloud
               REPORT=$(curl -s "https://sonarcloud.io/api/issues/search?componentKeys=$COMPONENT&resolved=false" \
                 -H "Authorization: Bearer $SONAR_TOKEN" |
                 jq -r '.issues[] | "\(.severity): \(.message) (line \(.line))"' | tr '\n' ' ')
 
-              # Si no hay errores reportados, saltar archivo
               if [ -z "$REPORT" ]; then
                 echo "⚠️ No se encontraron problemas específicos en $FILE, se omite"
                 continue
@@ -87,34 +85,32 @@ jobs:
               curl -s https://api.openai.com/v1/chat/completions \
                 -H "Authorization: Bearer $OPENAI_API_KEY" \
                 -H "Content-Type: application/json" \
-              -d '{
-                \"model\": \"gpt-4\",
-                \"messages\": [
-                  {
-                    \"role\": \"system\",
-                    \"content\": \"Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original.\"
-                  },
-                  {
-                    \"role\": \"user\",
-                    \"content\": \"Este es el código fuente en base64: ${CODE}. A continuación, los problemas reportados por SonarCloud: ${REPORT}. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado).\"
-                  }
-                ],
-                \"temperature\": 0.3
-              }' > "$RESPONSE_FILE"
+                -d '{
+                  "model": "gpt-4",
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original."
+                    },
+                    {
+                      "role": "user",
+                      "content": "Este es el código fuente en base64: '"$CODE"'. A continuación, los problemas reportados por SonarCloud: '"$REPORT"'. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)."
+                    }
+                  ],
+                  "temperature": 0.3
+                }' > "$RESPONSE_FILE"
 
-              # Extraer contenido corregido
               if jq -e '.choices[0].message.content' "$RESPONSE_FILE" > /dev/null 2>&1; then
                 jq -r '.choices[0].message.content' "$RESPONSE_FILE" > "${FILE%.java}.mejorado.java"
                 echo "✅ Generado: ${FILE%.java}.mejorado.java"
               else
-                echo "❌ Error en respuesta para $FILE"
-                cat "$RESPONSE_FILE"
+                echo "❌ Respuesta inválida para $FILE, guardando en errores_ci"
+                cp "$RESPONSE_FILE" "errores_ci/error_$(basename $FILE .java).json"
               fi
             else
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
           done < archivos_afectados.txt
-
 
       - name: Preparar carpeta src-analizado
         run: |
@@ -162,7 +158,6 @@ jobs:
               else 0 end
             ) | add // 0' > puntaje_antes.txt
 
-          cat puntaje_antes.txt
           puntaje_antes=$(cat puntaje_antes.txt)
           echo "PUNTAJE_ANTES=$puntaje_antes" >> $GITHUB_ENV
 
@@ -177,7 +172,6 @@ jobs:
               else 0 end
             ) | add // 0' > puntaje_despues.txt
 
-          cat puntaje_despues.txt
           puntaje_despues=$(cat puntaje_despues.txt)
           echo "PUNTAJE_DESPUES=$puntaje_despues" >> $GITHUB_ENV
 
@@ -189,7 +183,6 @@ jobs:
             echo "⛔ No se detectó mejora significativa en severidad"
           fi
 
-
       - name: Commit automático si hay mejora significativa
         if: env.MEJORA_SIGNIFICATIVA == 'true'
         env:
@@ -197,10 +190,8 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
 
-          # Hacer pull con rebase para evitar errores por cambios remotos
           git fetch origin
           git pull --rebase origin main
 
@@ -211,6 +202,16 @@ jobs:
           cp reportes_ci/* "$iter_dir/" || true
 
           git add ci-reportes/
-          git add src/**/*.mejorado.java || true
-          git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada con reducción de severidades"
-          git push origin main
+
+          if compgen -G "src/**/*.mejorado.java" > /dev/null; then
+            git add src/**/*.mejorado.java
+          else
+            echo "⚠️ No se encontraron archivos .mejorado.java para agregar"
+          fi
+
+          if git diff --cached --quiet; then
+            echo "⛔ No hay cambios para commitear, se omite push"
+          else
+            git commit -m "🤖 Iteración ${ITERACION_ACTUAL}: mejora aplicada con reducción de severidades"
+            git push origin main
+          fi
