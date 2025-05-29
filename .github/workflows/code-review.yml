@@ -47,9 +47,6 @@ jobs:
             -Dsonar.exclusions=src/test/** \
             -Dsonar.java.binaries=target/classes > salida_sonar_original.txt
 
-          echo "=== Salida de Sonar ==="
-          cat salida_sonar_original.txt
-
           errores_antes=$(grep -o 'severity":"[A-Z]\+"' salida_sonar_original.txt | wc -l || true)
           echo "ERRORES_ANTES=$errores_antes" >> $GITHUB_ENV
 
@@ -105,34 +102,31 @@ jobs:
           echo "Contenido actual:"
           ls -la
 
-          if [ ! -d src ]; then
-            echo "❌ No se encontró el directorio src/"
-            exit 1
-          fi
-
           cp -r src src-analizado
 
           for f in $(find src-analizado -name "*.mejorado.java"); do
             mv "$f" "${f%.mejorado.java}.java"
           done
 
+          set +e
           mvn sonar:sonar \
             -Dsonar.projectKey=rodrigorojasg_testSpring_gpt \
             -Dsonar.organization=rodrigorojasg \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.sources=src-analizado \
-            -Dsonar.exclusions=src-analizado/test/** \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.login=$SONAR_TOKEN > salida_sonar_gpt.txt
+          exit_code=$?
+          set -e
 
-          echo "=== Salida de Sonar GPT ==="
-          cat salida_sonar_gpt.txt
-
-          if grep -q 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt; then
-            errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l)
-          else
-            errores_despues=0
+          if [ $exit_code -ne 0 ]; then
+            echo "❌ Falló el análisis con Sonar (código $exit_code)"
+            cat salida_sonar_gpt.txt
+            echo "ERRORES_DESPUES=999" >> $GITHUB_ENV
+            exit 0
           fi
+
+          errores_despues=$(grep -o 'severity\":\"[A-Z]\+\"' salida_sonar_gpt.txt | wc -l || true)
           echo "ERRORES_DESPUES=$errores_despues" >> $GITHUB_ENV
 
       - name: Commit automático si hay mejora
