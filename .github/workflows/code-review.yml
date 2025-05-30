@@ -82,13 +82,12 @@ jobs:
 
               RESPONSE_FILE="reportes_ci/gpt_response_$(basename $FILE .java).json"
 
-              # Construir el mensaje completo interpolado correctamente
-              INSTRUCTION="Este es el código fuente en base64: $CODE_B64. A continuación, los problemas reportados por SonarCloud: $REPORT. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)."
-
               jq -n \
                 --arg model "gpt-4" \
+                --arg code "$CODE_B64" \
+                --arg report "$REPORT" \
                 --arg prompt "Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original." \
-                --arg instruction "$INSTRUCTION" \
+                --arg instruction "Este es el código fuente en base64: \$code. A continuación, los problemas reportados por SonarCloud: \$report. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. ⚠️ IMPORTANTE: responde solamente con el código fuente Java mejorado, completamente compilable y sin ningún comentario, encabezado, explicación, texto adicional o cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)." \
                 '{
                   model: $model,
                   messages: [
@@ -103,24 +102,25 @@ jobs:
                 -H "Content-Type: application/json" \
                 -d @payload.json > "$RESPONSE_FILE"
 
-              # Validar y extraer contenido corregido
               RESPUESTA=$(jq -r '.choices[0].message.content' "$RESPONSE_FILE")
-              ARCHIVO_SALIDA="${FILE%.java}.mejorado.java"
 
-              echo "$RESPUESTA" > "$ARCHIVO_SALIDA"
+              # Ruta del archivo corregido con estructura src/.../*.mejorado.java
+              DESTINO_MEJORADO="src/${FILE#src/}"
+              DESTINO_MEJORADO="${DESTINO_MEJORADO%.java}.mejorado.java"
+              mkdir -p "$(dirname "$DESTINO_MEJORADO")"
+              echo "$RESPUESTA" > "$DESTINO_MEJORADO"
 
-              # Verificar si contiene código compilable
-              if grep -q "public class" "$ARCHIVO_SALIDA"; then
-                echo "✅ Generado: $ARCHIVO_SALIDA"
+              if echo "$RESPUESTA" | grep -q "public class"; then
+                echo "✅ Generado: $DESTINO_MEJORADO"
               else
-                echo "❌ Contenido inesperado en $ARCHIVO_SALIDA, moviendo a errores_ci"
-                mkdir -p errores_ci
-                mv "$ARCHIVO_SALIDA" "errores_ci/$(basename "$ARCHIVO_SALIDA")"
+                echo "❌ Contenido inesperado para $FILE, moviendo a errores_ci"
+                mv "$DESTINO_MEJORADO" "errores_ci/$(basename "$DESTINO_MEJORADO")"
               fi
             else
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
           done < archivos_afectados.txt
+
 
       - name: Preparar carpeta src-analizado
         run: |
