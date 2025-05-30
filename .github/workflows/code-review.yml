@@ -84,8 +84,12 @@ jobs:
 
               PROMPT_SISTEMA="Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original."
 
-              MENSAJE_USUARIO="Este es el código fuente en base64: $CODE_B64. A continuación, los problemas reportados por SonarCloud: $REPORT. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. Tu única tarea es corregir exactamente esos problemas, sin cambiar la lógica, estructura ni diseño del código. ⚠️ IMPORTANTE: responde exclusivamente con el contenido de la clase Java ya corregida, sin agregar ninguna explicación, encabezado, contexto, comentarios, ni texto fuera del bloque de código. La salida debe ser únicamente una clase Java compilable, sin markdown, sin etiquetas como '```java', sin frases como 'Aquí está el código'. Solo el código limpio.  Evita cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado)."
+              MENSAJE_USUARIO=$(cat <<EOF
+              Este es el código fuente en base64: $CODE_B64. A continuación, los problemas reportados por SonarCloud: $REPORT. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código. Tu única tarea es corregir exactamente esos problemas, sin cambiar la lógica, estructura ni diseño del código.
 
+              ⚠️ IMPORTANTE: responde exclusivamente con el contenido de la clase Java ya corregida, sin agregar ninguna explicación, encabezado, contexto, comentarios, ni texto fuera del bloque de código. La salida debe ser únicamente una clase Java compilable, sin markdown, sin etiquetas como \`\`\`java, sin frases como "Aquí está el código". Solo el código limpio. Evita cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado).
+              EOF
+              )
               jq -n \
                 --arg prompt "$PROMPT_SISTEMA" \
                 --arg user "$MENSAJE_USUARIO" \
