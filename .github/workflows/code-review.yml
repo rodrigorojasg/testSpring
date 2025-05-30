@@ -123,10 +123,6 @@ jobs:
                 echo "$RESPUESTA" > "errores_ci/$(basename "$DESTINO_MEJORADO")"
                 echo "❌ Contenido inesperado para $FILE, guardado en errores_ci"
               fi
-              else
-                echo "⚠️ Archivo no encontrado: $FILE"
-              fi
-
 
             else
               echo "⚠️ Archivo no encontrado: $FILE"
