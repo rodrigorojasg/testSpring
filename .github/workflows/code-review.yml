@@ -110,13 +110,23 @@ jobs:
               mkdir -p "$(dirname "$DESTINO_MEJORADO")"
               echo "$RESPUESTA" > "$DESTINO_MEJORADO"
 
+              echo "🔍 Contenido recibido de GPT para $FILE:"
+              jq -r '.choices[0].message.content // "❌ No se encontró content en la respuesta"' "$RESPONSE_FILE"
+              echo "----------------------------------------"
+
+              RESPUESTA=$(jq -r '.choices[0].message.content // empty' "$RESPONSE_FILE")
+
               if echo "$RESPUESTA" | grep -q "public class"; then
                 echo "$RESPUESTA" > "$DESTINO_MEJORADO"
                 echo "✅ Generado: $DESTINO_MEJORADO"
               else
-                echo "❌ Contenido inesperado para $FILE, moviendo a errores_ci"
-                mv "$DESTINO_MEJORADO" "errores_ci/$(basename "$DESTINO_MEJORADO")"
+                echo "$RESPUESTA" > "errores_ci/$(basename "$DESTINO_MEJORADO")"
+                echo "❌ Contenido inesperado para $FILE, guardado en errores_ci"
               fi
+              else
+                echo "⚠️ Archivo no encontrado: $FILE"
+              fi
+
 
             else
               echo "⚠️ Archivo no encontrado: $FILE"
