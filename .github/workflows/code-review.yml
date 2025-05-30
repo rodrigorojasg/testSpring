@@ -84,11 +84,12 @@ jobs:
 
               PROMPT_SISTEMA="Eres un asistente experto en Java y Spring Boot. Vas a recibir una clase en Java codificada en base64 y una lista de problemas de calidad detectados por SonarCloud. Tu tarea es corregir solo esos problemas, manteniendo la lógica y estructura original."
 
-              read -r -d '' MENSAJE_USUARIO <<EOF
+              MENSAJE_USUARIO=$(cat <<EOF
               Este es el código fuente en base64: $CODE_B64. A continuación, los problemas reportados por SonarCloud: $REPORT. Corrige exclusivamente los problemas indicados por SonarCloud sin modificar la lógica ni el diseño original del código.
 
               ⚠️ IMPORTANTE: responde exclusivamente con el contenido de la clase Java ya corregida, sin agregar ninguna explicación, encabezado, contexto, comentarios, ni texto fuera del bloque de código. La salida debe ser únicamente una clase Java compilable, sin markdown, sin etiquetas como \`\`\`java, sin frases como "Aquí está el código". Solo el código limpio. Evita cambios estructurales innecesarios (como reemplazar entidades por DTOs si no está indicado).
               EOF
+              )
 
               jq -n \
                 --arg prompt "$PROMPT_SISTEMA" \
@@ -102,25 +103,20 @@ jobs:
                   temperature: 0.3
                 }' > payload.json
 
-
               curl -s https://api.openai.com/v1/chat/completions \
                 -H "Authorization: Bearer $OPENAI_API_KEY" \
                 -H "Content-Type: application/json" \
                 -d @payload.json > "$RESPONSE_FILE"
 
-              RESPUESTA=$(jq -r '.choices[0].message.content' "$RESPONSE_FILE")
+              RESPUESTA=$(jq -r '.choices[0].message.content // empty' "$RESPONSE_FILE")
 
-              # Ruta del archivo corregido con estructura src/.../*.mejorado.java
               DESTINO_MEJORADO="src/${FILE#src/}"
               DESTINO_MEJORADO="${DESTINO_MEJORADO%.java}.mejorado.java"
               mkdir -p "$(dirname "$DESTINO_MEJORADO")"
-              echo "$RESPUESTA" > "$DESTINO_MEJORADO"
 
               echo "🔍 Contenido recibido de GPT para $FILE:"
-              jq -r '.choices[0].message.content // "❌ No se encontró content en la respuesta"' "$RESPONSE_FILE"
+              echo "$RESPUESTA"
               echo "----------------------------------------"
-
-              RESPUESTA=$(jq -r '.choices[0].message.content // empty' "$RESPONSE_FILE")
 
               if echo "$RESPUESTA" | grep -q "public class"; then
                 echo "$RESPUESTA" > "$DESTINO_MEJORADO"
@@ -129,7 +125,6 @@ jobs:
                 echo "$RESPUESTA" > "errores_ci/$(basename "$DESTINO_MEJORADO")"
                 echo "❌ Contenido inesperado para $FILE, guardado en errores_ci"
               fi
-
             else
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
