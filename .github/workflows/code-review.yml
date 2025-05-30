@@ -126,6 +126,7 @@ jobs:
           done < archivos_afectados.txt
 
 
+
       - name: Preparar carpeta src-analizado
         run: |
           mkdir -p src-analizado/main/java
