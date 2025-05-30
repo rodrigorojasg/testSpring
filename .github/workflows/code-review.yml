@@ -111,11 +111,13 @@ jobs:
               echo "$RESPUESTA" > "$DESTINO_MEJORADO"
 
               if echo "$RESPUESTA" | grep -q "public class"; then
+                echo "$RESPUESTA" > "$DESTINO_MEJORADO"
                 echo "✅ Generado: $DESTINO_MEJORADO"
               else
                 echo "❌ Contenido inesperado para $FILE, moviendo a errores_ci"
                 mv "$DESTINO_MEJORADO" "errores_ci/$(basename "$DESTINO_MEJORADO")"
               fi
+
             else
               echo "⚠️ Archivo no encontrado: $FILE"
             fi
