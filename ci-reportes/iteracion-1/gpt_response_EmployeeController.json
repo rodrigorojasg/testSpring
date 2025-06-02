@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-Be65ZcJDDlgBBbxrn15sGMahazASv",
+  "object": "chat.completion",
+  "created": 1748896225,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package test.core.api.controller;\n\nimport java.util.List;\n\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.DeleteMapping;\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.PathVariable;\nimport org.springframework.web.bind.annotation.PutMapping;\nimport org.springframework.web.bind.annotation.RequestBody;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RestController;\n\nimport test.core.api.model.EmployeeDto;\nimport test.core.api.service.EmployeeService;\n\n@RestController\n@RequestMapping(\"/api/employees\")\npublic class EmployeeController {\n\n    private final EmployeeService service;\n    private static final Logger LOGGER = LoggerFactory.getLogger(EmployeeController.class);\n\n    @Autowired\n    public EmployeeController(EmployeeService service) {\n        this.service = service;\n    }\n\n    @GetMapping\n    public List<EmployeeDto> getAll() {\n        LOGGER.info(\"Fetching all employees\");\n        return service.getAllEmployees();\n    }\n\n    @DeleteMapping(\"/{id}\")\n    public ResponseEntity<Void> delete(@PathVariable Long id) {\n        service.deleteEmployeeById(id);\n        return ResponseEntity.noContent().build();\n    }\n\n    @PutMapping\n    public EmployeeDto insert(@RequestBody EmployeeDto employee) {\n        return service.saveEmployee(employee);\n    }\n\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1494,
+    "completion_tokens": 259,
+    "total_tokens": 1753,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
