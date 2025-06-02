@@ -239,11 +239,14 @@ jobs:
 
           git add ci-reportes/
 
-          if compgen -G "src/**/*.mejorado.java" > /dev/null; then
-            git add src/**/*.mejorado.java
+          MEJORADOS=$(find src -type f -name "*.mejorado.java")
+
+          if [ -n "$MEJORADOS" ]; then
+            echo "$MEJORADOS" | xargs git add
           else
             echo "⚠️ No se encontraron archivos .mejorado.java para agregar"
           fi
+
 
           if git diff --cached --quiet; then
             echo "⛔ No hay cambios para commitear, se omite push"
