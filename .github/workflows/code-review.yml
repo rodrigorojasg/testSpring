@@ -177,21 +177,14 @@ jobs:
           echo "📊 Comparación de severidades:"
 
           echo "ANTES:"
-          cat reporte_original.json | jq '[.issues[]? | .severity // empty] |
-            map(
-              if . == "BLOCKER" then 10
-              elif . == "CRITICAL" then 7
-              elif . == "MAJOR" then 5
-              elif . == "MINOR" then 3
-              elif . == "INFO" then 1
-              else 0 end
-            ) | add // 0' > puntaje_antes.txt
-
-          puntaje_antes=$(cat puntaje_antes.txt)
-          echo "PUNTAJE_ANTES=$puntaje_antes" >> $GITHUB_ENV
+          jq '[.issues[]?.severity] | group_by(.) | map({ (.[0]): length }) | add' reporte_original.json > severidades_antes.json
+          cat severidades_antes.json
 
           echo "DESPUÉS:"
-          cat reporte_mejorado.json | jq '[.issues[]? | .severity // empty] |
+          jq '[.issues[]?.severity] | group_by(.) | map({ (.[0]): length }) | add' reporte_mejorado.json > severidades_despues.json
+          cat severidades_despues.json
+
+          puntaje_antes=$(jq '[.issues[]?.severity] |
             map(
               if . == "BLOCKER" then 10
               elif . == "CRITICAL" then 7
@@ -199,18 +192,32 @@ jobs:
               elif . == "MINOR" then 3
               elif . == "INFO" then 1
               else 0 end
-            ) | add // 0' > puntaje_despues.txt
+            ) | add // 0' reporte_original.json)
 
-          puntaje_despues=$(cat puntaje_despues.txt)
+          puntaje_despues=$(jq '[.issues[]?.severity] |
+            map(
+              if . == "BLOCKER" then 10
+              elif . == "CRITICAL" then 7
+              elif . == "MAJOR" then 5
+              elif . == "MINOR" then 3
+              elif . == "INFO" then 1
+              else 0 end
+            ) | add // 0' reporte_mejorado.json)
+
+          echo "PUNTAJE_ANTES=$puntaje_antes" >> $GITHUB_ENV
           echo "PUNTAJE_DESPUES=$puntaje_despues" >> $GITHUB_ENV
 
           if [ "$puntaje_despues" -lt "$puntaje_antes" ]; then
             echo "MEJORA_SIGNIFICATIVA=true" >> $GITHUB_ENV
-            echo "✅ Mejora significativa detectada"
+            echo "✅ Mejora significativa detectada (↓ $puntaje_antes → $puntaje_despues)"
+          elif [ "$puntaje_despues" -eq "$puntaje_antes" ]; then
+            echo "MEJORA_SIGNIFICATIVA=false" >> $GITHUB_ENV
+            echo "⚠️ Sin cambios en severidades ($puntaje_antes → $puntaje_despues)"
           else
             echo "MEJORA_SIGNIFICATIVA=false" >> $GITHUB_ENV
-            echo "⛔ No se detectó mejora significativa en severidad"
+            echo "⛔ Las severidades aumentaron ($puntaje_antes → $puntaje_despues)"
           fi
+
 
       - name: Commit automático si hay mejora significativa
         if: env.MEJORA_SIGNIFICATIVA == 'true'
