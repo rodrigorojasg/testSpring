@@ -1,36 +1,32 @@
 name: Generar funcionalidad desde historia de usuario
 
 on:
-  workflow_dispatch:
-    inputs:
-      historia_usuario:
-        description: 'Historia de Usuario'
-        required: true
-        type: string
-      repositorio_base:
-        description: 'Repositorio base (ej: rodrigorojasg/testSpring)'
-        required: true
-        type: string
+  push:
+    paths:
+      - 'historias-usuario/**.yml'
 
 jobs:
   generar_codigo:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verificar inputs
-        run: |
-          echo "Historia de Usuario: ${{ github.event.inputs.historia_usuario }}"
-          echo "Repositorio base: ${{ github.event.inputs.repositorio_base }}"
-
-      - name: Clonar repositorio base
+      - name: Clonar repositorio actual
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_PAT }}
-          repository: ${{ github.event.inputs.repositorio_base }}
           path: repositorio-base
 
-      - name: Inspeccionar contenido clonado
-        run: ls -R repositorio-base
+      - name: Detectar historia de usuario modificada
+        id: historia
+        run: |
+          archivo=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^historias-usuario/.*\.yml$' | head -n 1)
+          echo "📝 Historia modificada: $archivo"
+          echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
+
+      - name: Leer contenido de historia de usuario
+        run: |
+          cd repositorio-base
+          cat "${{ steps.historia.outputs.ruta }}" > entrada_gpt.txt
 
       - name: Instalar dependencias necesarias
         run: |
@@ -39,25 +35,16 @@ jobs:
 
       - name: Indexar clases Java existentes y preparar prompt
         run: |
-          echo "📁 Buscando clases Java dentro de repositorio-base/src/main/java..."
           find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
-
-          if [ ! -s clases_existentes.txt ]; then
-            echo "❌ No se encontraron archivos .java. Abortando."
-            exit 1
-          fi
-
-          echo "Historia de usuario recibida:" > entrada_gpt.txt
-          echo "${{ github.event.inputs.historia_usuario }}" >> entrada_gpt.txt
-          echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
-          cat clases_existentes.txt >> entrada_gpt.txt
-          echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> entrada_gpt.txt
+          cat clases_existentes.txt >> repositorio-base/entrada_gpt.txt
+          echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> repositorio-base/entrada_gpt.txt
 
       - name: Llamar a OpenAI para generar clases y tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          PROMPT="$(cat entrada_gpt.txt)"
+          cd repositorio-base
+          PROMPT=$(cat entrada_gpt.txt)
           jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
             messages: [
@@ -72,20 +59,21 @@ jobs:
             -H "Content-Type: application/json" \
             -d @payload.json > respuesta_gpt.json
 
-          jq -r '.choices[0].message.content // "❌ No se encontró contenido válido en la respuesta de GPT."' respuesta_gpt.json > clases_generadas_completas.java
+          jq -r '.choices[0].message.content // "❌ No se encontró contenido válido en la respuesta de GPT."' respuesta_gpt.json > clases_generadas.java
 
-      - name: Separar clases generadas en archivos individuales
+      - name: Separar clases generadas
         run: |
           mkdir -p repositorio-base/src/main/java/ai/generated
           mkdir -p repositorio-base/src/test/java/ai/generated
-          csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas_completas.java "/^package /" {*}
+          cd repositorio-base
+          csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas.java "/^package /" {*}
           i=1
           for file in clase_*.java; do
             class_name=$(grep -oP 'public\s+(class|interface|enum)\s+\K\w+' "$file" | head -n 1)
             if grep -q '@Test' "$file"; then
-              dest="repositorio-base/src/test/java/ai/generated"
+              dest="src/test/java/ai/generated"
             else
-              dest="repositorio-base/src/main/java/ai/generated"
+              dest="src/main/java/ai/generated"
             fi
             if [ -n "$class_name" ]; then
               mv "$file" "$dest/${class_name}.java"
@@ -95,7 +83,7 @@ jobs:
             i=$((i+1))
           done
 
-      - name: Ejecutar pruebas unitarias (regresión + nuevas)
+      - name: Ejecutar pruebas unitarias
         run: |
           cd repositorio-base
           mvn test || echo "⚠️ Algunos tests fallaron, revisar en GitHub Actions log"
@@ -110,12 +98,11 @@ jobs:
           git checkout -b feature/autogenerado-${{ github.run_id }}
 
           git add .
-
           if git diff --cached --quiet; then
             echo "⛔ No hay cambios para commitear, se omite push"
             exit 0
           fi
 
           git commit -m "🤖 Funcionalidad generada desde historia de usuario"
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.event.inputs.repositorio_base }}.git
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
           git push origin HEAD
