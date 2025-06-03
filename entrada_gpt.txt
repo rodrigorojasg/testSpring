@@ -1,0 +1,11 @@
+nombre: Obtener empleados nacidos antes del año 2000
+como: Administrador del sistema
+quiero: Obtener una lista de empleados que hayan nacido antes del año 2000
+para: Poder segmentar a los empleados por generaciones y aplicar políticas diferenciadasrepositorio-base/src/main/java/test/core/api/model/Employee.java
+repositorio-base/src/main/java/test/core/api/repository/EmployeeRepository.java
+repositorio-base/src/main/java/test/core/api/EmployeeCoreApiApplication.java
+repositorio-base/src/main/java/test/core/api/controller/EmployeeController.java
+repositorio-base/src/main/java/test/core/api/service/EmployeeService.java
+repositorio-base/src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java
+
+Además de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad.

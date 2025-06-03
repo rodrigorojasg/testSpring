@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BeTmasN3XdslxaQvFwRwiPIFnQcdm",
+  "object": "chat.completion",
+  "created": 1748987304,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package test.core.api.model;\n\nimport javax.persistence.*;\nimport java.time.LocalDate;\n\n@Entity\npublic class Employee {\n\n    @Id\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\n    private Long id;\n\n    private String name;\n\n    private LocalDate birthDate;\n\n    // Getters and Setters\n    public Long getId() {\n        return id;\n    }\n\n    public void setId(Long id) {\n        this.id = id;\n    }\n\n    public String getName() {\n        return name;\n    }\n\n    public void setName(String name) {\n        this.name = name;\n    }\n\n    public LocalDate getBirthDate() {\n        return birthDate;\n    }\n\n    public void setBirthDate(LocalDate birthDate) {\n        this.birthDate = birthDate;\n    }\n}\n\npackage test.core.api.repository;\n\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport org.springframework.data.jpa.repository.Query;\nimport org.springframework.stereotype.Repository;\nimport test.core.api.model.Employee;\n\nimport java.time.LocalDate;\nimport java.util.List;\n\n@Repository\npublic interface EmployeeRepository extends JpaRepository<Employee, Long> {\n\n    @Query(\"SELECT e FROM Employee e WHERE e.birthDate < :year\")\n    List<Employee> findEmployeesBornBeforeYear(LocalDate year);\n}\n\npackage test.core.api.service;\n\nimport test.core.api.model.Employee;\n\nimport java.util.List;\n\npublic interface EmployeeService {\n    List<Employee> getEmployeesBornBeforeYear(int year);\n}\n\npackage test.core.api.service.impl;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.EmployeeService;\n\nimport java.time.LocalDate;\nimport java.util.List;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    @Override\n    public List<Employee> getEmployeesBornBeforeYear(int year) {\n        return employeeRepository.findEmployeesBornBeforeYear(LocalDate.of(year, 1, 1));\n    }\n}\n\npackage test.core.api.controller;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RestController;\nimport test.core.api.model.Employee;\nimport test.core.api.service.EmployeeService;\n\nimport java.util.List;\n\n@RestController\n@RequestMapping(\"/api/employees\")\npublic class EmployeeController {\n\n    @Autowired\n    private EmployeeService employeeService;\n\n    @GetMapping(\"/born-before-2000\")\n    public List<Employee> getEmployeesBornBefore2000() {\n        return employeeService.getEmployeesBornBeforeYear(2000);\n    }\n}\n\npackage test.core.api;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\n\n@SpringBootApplication\npublic class EmployeeCoreApiApplication {\n\n    public static void main(String[] args) {\n        SpringApplication.run(EmployeeCoreApiApplication.class, args);\n    }\n}\n\npackage test.core.api.service;\n\nimport org.junit.jupiter.api.Test;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.Mockito;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.impl.EmployeeServiceImpl;\n\nimport java.time.LocalDate;\nimport java.util.Arrays;\nimport java.util.List;\n\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\n@SpringBootTest\npublic class EmployeeServiceTest {\n\n    @InjectMocks\n    private EmployeeServiceImpl employeeService;\n\n    @Mock\n    private EmployeeRepository employeeRepository;\n\n    @Test\n    public void testGetEmployeesBornBeforeYear() {\n        Employee employee1 = new Employee();\n        employee1.setBirthDate(LocalDate.of(1990, 1, 1));\n\n        Employee employee2 = new Employee();\n        employee2.setBirthDate(LocalDate.of(1985, 1, 1));\n\n        Mockito.when(employeeRepository.findEmployeesBornBeforeYear(LocalDate.of(2000, 1, 1)))\n                .thenReturn(Arrays.asList(employee1, employee2));\n\n        List<Employee> employees = employeeService.getEmployeesBornBeforeYear(2000);\n\n        assertEquals(2, employees.size());\n        assertEquals(employee1, employees.get(0));\n        assertEquals(employee2, employees.get(1));\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 244,
+    "completion_tokens": 825,
+    "total_tokens": 1069,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
