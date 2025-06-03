@@ -1,0 +1,14 @@
+{
+  "model": "gpt-4",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con package. No incluyas texto adicional."
+    },
+    {
+      "role": "user",
+      "content": "nombre: Obtener empleados nacidos antes del año 2000\ncomo: Administrador del sistema\nquiero: Obtener una lista de empleados que hayan nacido antes del año 2000\npara: Poder segmentar los empleados por generaciones y aplicar políticas diferenciadasrepositorio-base/src/main/java/test/core/api/model/Employee.java\nrepositorio-base/src/main/java/test/core/api/repository/EmployeeRepository.java\nrepositorio-base/src/main/java/test/core/api/EmployeeCoreApiApplication.java\nrepositorio-base/src/main/java/test/core/api/controller/EmployeeController.java\nrepositorio-base/src/main/java/test/core/api/service/EmployeeService.java\nrepositorio-base/src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java"
+    }
+  ],
+  "temperature": 0.3
+}
