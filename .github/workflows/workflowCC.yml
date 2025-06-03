@@ -58,7 +58,8 @@ jobs:
         run: |
           find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
           cat clases_existentes.txt >> repositorio-base/entrada_gpt.txt
-          echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> repositorio-base/entrada_gpt.txt
+          echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> entrada_gpt.txt
+          echo -e "\nExtiende o reutiliza las clases detectadas si es coherente con la historia de usuario. No elimines ni sobrescribas funcionalidades ya existentes." >> entrada_gpt.txt
 
       - name: Llamar a OpenAI para generar clases y tests
         env:
