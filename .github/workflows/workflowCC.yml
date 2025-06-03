@@ -60,6 +60,8 @@ jobs:
           cat clases_existentes.txt >> repositorio-base/entrada_gpt.txt
           echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> entrada_gpt.txt
           echo -e "\nExtiende o reutiliza las clases detectadas si es coherente con la historia de usuario. No elimines ni sobrescribas funcionalidades ya existentes." >> entrada_gpt.txt
+          echo -e "\nSi es necesario modificar clases existentes para agregar nueva funcionalidad, hazlo sin eliminar ni sobrescribir campos, métodos u otros elementos ya definidos. Extiende las clases o agrega métodos adicionales respetando la estructura existente." >> entrada_gpt.txt
+
 
       - name: Llamar a OpenAI para generar clases y tests
         env:
