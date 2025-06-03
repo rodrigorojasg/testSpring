@@ -15,11 +15,16 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
           path: repositorio-base
-
+          
       - name: Detectar historia de usuario modificada
         id: historia
         run: |
-          archivo=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^historias-usuario/.*\.yml$' | head -n 1)
+          cd repositorio-base
+          archivo=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
+          if [ -z "$archivo" ]; then
+            echo "⛔ No se encontró ninguna historia de usuario modificada. Abortando."
+            exit 1
+          fi
           echo "📝 Historia modificada: $archivo"
           echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
 
