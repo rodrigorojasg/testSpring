@@ -21,12 +21,16 @@ jobs:
         run: |
           cd repositorio-base
 
-          # Detectar el SHA base de comparación
+          # Asegura historial completo (importante si el checkout es shallow)
+          git fetch --unshallow || true
+
           base_sha="${{ github.event.before }}"
           if ! git cat-file -e "$base_sha"^{commit} 2>/dev/null; then
-            echo "⚠️ SHA base no válido, usando HEAD~1 como referencia"
-            base_sha="HEAD~1"
+            echo "⚠️ SHA base no válido o sin historial, usando HEAD^"
+            base_sha="HEAD^"
           fi
+
+          echo "🔍 Comparando con base: $base_sha"
 
           archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
 
@@ -37,6 +41,7 @@ jobs:
 
           echo "📝 Historia modificada: $archivo"
           echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
+
 
 
       - name: Leer contenido de historia de usuario
