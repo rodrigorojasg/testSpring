@@ -56,11 +56,31 @@ jobs:
 
       - name: Indexar clases Java existentes y preparar prompt
         run: |
+          echo "📁 Buscando clases Java dentro de repositorio-base/src/main/java..."
           find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
-          cat clases_existentes.txt >> repositorio-base/entrada_gpt.txt
+
+          if [ ! -s clases_existentes.txt ]; then
+            echo "❌ No se encontraron archivos .java. Abortando."
+            exit 1
+          fi
+
+          echo "Historia de usuario recibida:" > entrada_gpt.txt
+          echo "===============================" >> entrada_gpt.txt
+          cat historias-usuario/*.yml >> entrada_gpt.txt
+
+          echo -e "\n📦 Contenido completo de las clases Java detectadas:" >> entrada_gpt.txt
+          echo "===============================" >> entrada_gpt.txt
+
+          while read -r java_file; do
+            echo -e "\n---\nArchivo: $java_file\n---" >> entrada_gpt.txt
+            cat "$java_file" >> entrada_gpt.txt
+          done < clases_existentes.txt
+
           echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> entrada_gpt.txt
-          echo -e "\nExtiende o reutiliza las clases detectadas si es coherente con la historia de usuario. No elimines ni sobrescribas funcionalidades ya existentes." >> entrada_gpt.txt
-          echo -e "\nSi es necesario modificar clases existentes para agregar nueva funcionalidad, hazlo sin eliminar ni sobrescribir campos, métodos u otros elementos ya definidos. Extiende las clases o agrega métodos adicionales respetando la estructura existente." >> entrada_gpt.txt
+          echo -e "\nExtiende o reutiliza las clases detectadas si es coherente con la historia de usuario. No elimines ni sobrescribas funcionalidades ya existentes. Si necesitas modificar una clase, hazlo preservando todo lo anterior y agregando lo nuevo." >> entrada_gpt.txt
+
+          echo "📝 Prompt generado para GPT:"
+          head -n 100 entrada_gpt.txt || true
 
 
       - name: Llamar a OpenAI para generar clases y tests
