@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BepemWniRbEvN50aXTsLqNs5eQCRN",
+  "object": "chat.completion",
+  "created": 1749071388,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package com.example.demo.service;\n\nimport com.example.demo.entity.Employee;\nimport com.example.demo.repository.EmployeeRepository;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\n\nimport java.util.Date;\nimport java.util.List;\nimport java.util.stream.Collectors;\n\n@Service\npublic class EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    public List<Employee> getEmployeesBornBefore2000() {\n        List<Employee> allEmployees = employeeRepository.findAll();\n\n        return allEmployees.stream()\n                .filter(employee -> employee.getBirthDate().before(new Date(100, 0, 1))) // Date(100, 0, 1) represents January 1, 2000\n                .collect(Collectors.toList());\n    }\n}\n\npackage com.example.demo.entity;\n\nimport javax.persistence.Entity;\nimport javax.persistence.GeneratedValue;\nimport javax.persistence.GenerationType;\nimport javax.persistence.Id;\nimport java.util.Date;\n\n@Entity\npublic class Employee {\n\n    @Id\n    @GeneratedValue(strategy = GenerationType.AUTO)\n    private Long id;\n    private String name;\n    private Date birthDate;\n\n    // getters and setters\n}\n\npackage com.example.demo.repository;\n\nimport com.example.demo.entity.Employee;\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport org.springframework.stereotype.Repository;\n\n@Repository\npublic interface EmployeeRepository extends JpaRepository<Employee, Long> {\n}\n\npackage com.example.demo.service;\n\nimport com.example.demo.entity.Employee;\nimport com.example.demo.repository.EmployeeRepository;\nimport org.junit.jupiter.api.Test;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.springframework.boot.test.context.SpringBootTest;\n\nimport java.util.Arrays;\nimport java.util.Date;\nimport java.util.List;\n\nimport static org.junit.jupiter.api.Assertions.assertEquals;\nimport static org.mockito.Mockito.when;\n\n@SpringBootTest\npublic class EmployeeServiceTest {\n\n    @InjectMocks\n    private EmployeeService employeeService;\n\n    @Mock\n    private EmployeeRepository employeeRepository;\n\n    @Test\n    public void testGetEmployeesBornBefore2000() {\n        Employee employee1 = new Employee();\n        employee1.setBirthDate(new Date(99, 0, 1)); // January 1, 1999\n\n        Employee employee2 = new Employee();\n        employee2.setBirthDate(new Date(100, 0, 1)); // January 1, 2000\n\n        when(employeeRepository.findAll()).thenReturn(Arrays.asList(employee1, employee2));\n\n        List<Employee> employeesBornBefore2000 = employeeService.getEmployeesBornBefore2000();\n\n        assertEquals(1, employeesBornBefore2000.size());\n        assertEquals(employee1, employeesBornBefore2000.get(0));\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 124,
+    "completion_tokens": 519,
+    "total_tokens": 643,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
