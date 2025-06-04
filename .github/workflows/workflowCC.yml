@@ -62,8 +62,13 @@ jobs:
           echo "Historia de usuario recibida:" > entrada_gpt.txt
           cat repositorio-base/${{ steps.historia.outputs.ruta }} >> entrada_gpt.txt
 
-          echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
-          cat clases_existentes.txt >> entrada_gpt.txt
+          echo -e "\nResumen de clases existentes (nombre + contenido relevante):" >> entrada_gpt.txt
+          while read -r clase; do
+            echo -e "\n--- ${clase} ---" >> entrada_gpt.txt
+            echo "package $(grep '^package' "$clase")" >> entrada_gpt.txt
+            grep -E 'public (class|interface|enum)|@Entity|@Table|private|protected|public' "$clase" | head -n 50 >> entrada_gpt.txt
+          done < clases_existentes.txt
+
 
           cat <<'EOF' >> entrada_gpt.txt
 
