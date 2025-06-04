@@ -20,8 +20,6 @@ jobs:
         id: historia
         run: |
           cd repositorio-base
-
-          # Asegura historial completo (importante si el checkout es shallow)
           git fetch --unshallow || true
 
           base_sha="${{ github.event.before }}"
@@ -31,7 +29,6 @@ jobs:
           fi
 
           echo "🔍 Comparando con base: $base_sha"
-
           archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
 
           if [ -z "$archivo" ]; then
@@ -41,8 +38,6 @@ jobs:
 
           echo "📝 Historia modificada: $archivo"
           echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
-
-
 
       - name: Leer contenido de historia de usuario
         run: |
@@ -65,7 +60,7 @@ jobs:
           fi
 
           echo "Historia de usuario recibida:" > entrada_gpt.txt
-          cat repositorio-base/historias-usuario/*.yml >> entrada_gpt.txt
+          cat repositorio-base/${{ steps.historia.outputs.ruta }} >> entrada_gpt.txt
 
           echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
           cat clases_existentes.txt >> entrada_gpt.txt
@@ -92,6 +87,31 @@ jobs:
           echo "🧠 Contenido final del prompt:"
           cat entrada_gpt.txt
 
+      - name: Análisis previo de clases (diagnóstico)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+          PROMPT=$(cat entrada_gpt.txt)
+          jq -n --arg prompt "$PROMPT" ' {
+            model: "gpt-4",
+            messages: [
+              {
+                "role": "system",
+                "content": "Eres un arquitecto de software. Clasifica las clases Java existentes como: reutilizables, modificables o nuevas según la historia de usuario. Solo devuelve una tabla en Markdown."
+              },
+              { "role": "user", "content": $prompt }
+            ],
+            temperature: 0.2
+          }' > payload_diagnostico.json
+
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload_diagnostico.json > diagnostico.json
+
+          echo "📋 Diagnóstico de clases:"
+          jq -r '.choices[0].message.content // "❌ No se encontró diagnóstico válido."' diagnostico.json
 
       - name: Llamar a OpenAI para generar clases y tests
         env:
@@ -99,7 +119,7 @@ jobs:
         run: |
           cd repositorio-base
           PROMPT=$(cat entrada_gpt.txt)
-          jq -n --arg prompt "$PROMPT" '{
+          jq -n --arg prompt "$PROMPT" ' {
             model: "gpt-4",
             messages: [
               { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con 'package'. No incluyas texto adicional." },
