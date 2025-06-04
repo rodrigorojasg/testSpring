@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BeqVbWjaIzNy6KbseBPnh2kjQqief",
+  "object": "chat.completion",
+  "created": 1749074663,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package com.example.demo.employee;\n\nimport org.springframework.stereotype.Service;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport java.util.List;\nimport java.util.stream.Collectors;\n\n@Service\npublic class EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    public List<Employee> getEmployeesBornBefore2000() {\n        return employeeRepository.findAll().stream()\n                .filter(employee -> employee.getBirthDate().getYear() < 2000)\n                .collect(Collectors.toList());\n    }\n}\n\npackage com.example.demo.employee;\n\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport java.time.LocalDate;\n\npublic interface EmployeeRepository extends JpaRepository<Employee, Long> {\n}\n\npackage com.example.demo.employee;\n\nimport javax.persistence.Entity;\nimport javax.persistence.GeneratedValue;\nimport javax.persistence.GenerationType;\nimport javax.persistence.Id;\nimport java.time.LocalDate;\n\n@Entity\npublic class Employee {\n\n    @Id\n    @GeneratedValue(strategy = GenerationType.AUTO)\n    private Long id;\n    private String name;\n    private LocalDate birthDate;\n\n    // getters and setters\n}\n\npackage com.example.demo.employee;\n\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport java.time.LocalDate;\nimport java.util.List;\nimport static org.junit.jupiter.api.Assertions.assertTrue;\n\n@SpringBootTest\npublic class EmployeeServiceTest {\n\n    @Autowired\n    private EmployeeService employeeService;\n\n    @Test\n    public void testGetEmployeesBornBefore2000() {\n        List<Employee> employees = employeeService.getEmployeesBornBefore2000();\n        assertTrue(employees.stream().allMatch(employee -> employee.getBirthDate().getYear() < 2000));\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 124,
+    "completion_tokens": 324,
+    "total_tokens": 448,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
