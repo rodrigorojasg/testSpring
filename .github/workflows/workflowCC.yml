@@ -65,7 +65,8 @@ jobs:
           fi
 
           echo "Historia de usuario recibida:" > entrada_gpt.txt
-          cat historias-usuario/*.yml >> entrada_gpt.txt
+          cat repositorio-base/historias-usuario/*.yml >> entrada_gpt.txt
+
           echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
           cat clases_existentes.txt >> entrada_gpt.txt
 
