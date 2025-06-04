@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BeqHqmFowSAh8ZQRLT1WR1eFBvfws",
+  "object": "chat.completion",
+  "created": 1749073810,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package com.example.demo.employee;\n\nimport org.springframework.stereotype.Service;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport java.util.List;\nimport java.util.stream.Collectors;\n\n@Service\npublic class EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    public List<Employee> getEmployeesBornBefore2000() {\n        return employeeRepository.findAll().stream()\n                .filter(employee -> employee.getBirthDate().getYear() < 2000)\n                .collect(Collectors.toList());\n    }\n}\n\npackage com.example.demo.employee;\n\nimport javax.persistence.Entity;\nimport javax.persistence.GeneratedValue;\nimport javax.persistence.GenerationType;\nimport javax.persistence.Id;\nimport java.time.LocalDate;\n\n@Entity\npublic class Employee {\n\n    @Id\n    @GeneratedValue(strategy = GenerationType.AUTO)\n    private Long id;\n    private String name;\n    private LocalDate birthDate;\n\n    // getters and setters\n}\n\npackage com.example.demo.employee;\n\nimport org.springframework.data.jpa.repository.JpaRepository;\n\npublic interface EmployeeRepository extends JpaRepository<Employee, Long> {\n}\n\npackage com.example.demo.employee;\n\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport org.springframework.boot.test.mock.mockito.MockBean;\nimport java.time.LocalDate;\nimport java.util.Arrays;\nimport java.util.List;\nimport static org.junit.jupiter.api.Assertions.assertEquals;\nimport static org.mockito.Mockito.when;\n\n@SpringBootTest\npublic class EmployeeServiceTest {\n\n    @Autowired\n    private EmployeeService employeeService;\n\n    @MockBean\n    private EmployeeRepository employeeRepository;\n\n    @Test\n    public void testGetEmployeesBornBefore2000() {\n        Employee emp1 = new Employee();\n        emp1.setBirthDate(LocalDate.of(1999, 1, 1));\n\n        Employee emp2 = new Employee();\n        emp2.setBirthDate(LocalDate.of(2000, 1, 1));\n\n        Employee emp3 = new Employee();\n        emp3.setBirthDate(LocalDate.of(2001, 1, 1));\n\n        when(employeeRepository.findAll()).thenReturn(Arrays.asList(emp1, emp2, emp3));\n\n        List<Employee> employees = employeeService.getEmployeesBornBefore2000();\n        assertEquals(1, employees.size());\n        assertEquals(emp1.getBirthDate(), employees.get(0).getBirthDate());\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 123,
+    "completion_tokens": 451,
+    "total_tokens": 574,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

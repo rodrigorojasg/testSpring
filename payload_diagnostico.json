@@ -1,0 +1,14 @@
+{
+  "model": "gpt-4",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Eres un arquitecto de software. Clasifica las clases Java existentes como: reutilizables, modificables o nuevas según la historia de usuario. Solo devuelve una tabla en Markdown."
+    },
+    {
+      "role": "user",
+      "content": "nombre: Obtener empleados nacidos antes del año 2000\ncomo: Administrador del sistema\nquiero: Obtener una lista de empleados que hayan nacido antes del año 2000\npara: Poder segmentar a los empleados por generaciones y aplicar políticas diferenciadas"
+    }
+  ],
+  "temperature": 0.2
+}
