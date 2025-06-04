@@ -65,19 +65,31 @@ jobs:
           fi
 
           echo "Historia de usuario recibida:" > entrada_gpt.txt
-          echo "===============================" >> entrada_gpt.txt
-          cat repositorio-base/historias-usuario/*.yml >> entrada_gpt.txt
+          cat historias-usuario/*.yml >> entrada_gpt.txt
+          echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
+          cat clases_existentes.txt >> entrada_gpt.txt
 
-          echo -e "\n📦 Contenido completo de las clases Java detectadas:" >> entrada_gpt.txt
-          echo "===============================" >> entrada_gpt.txt
+          cat <<'EOF' >> entrada_gpt.txt
 
-          while read -r java_file; do
-            echo -e "\n---\nArchivo: $java_file\n---" >> entrada_gpt.txt
-            cat "$java_file" >> entrada_gpt.txt
-          done < clases_existentes.txt
+          --- ANÁLISIS (Fase 1) ---
+          Analiza las clases detectadas. Indica:
+          1. Qué clases pueden reutilizarse sin modificar.
+          2. Qué clases deben ser modificadas (añadir métodos, anotaciones, etc.).
+          3. Qué clases deben ser nuevas.
 
-          echo -e "\nAdemás de la implementación, genera pruebas unitarias JUnit 5 para verificar la funcionalidad." >> entrada_gpt.txt
-          echo -e "\nExtiende o reutiliza las clases detectadas si es coherente con la historia de usuario. No elimines ni sobrescribas funcionalidades ya existentes. Si necesitas modificar una clase, hazlo preservando todo lo anterior y agregando lo nuevo." >> entrada_gpt.txt
+          --- DISEÑO (Fase 2) ---
+          Para las clases a modificar:
+          - Explica brevemente qué se agrega y por qué.
+          - No elimines atributos ni sobrescribas lógica existente.
+
+          --- GENERACIÓN (Fase 3) ---
+          Genera únicamente las clases nuevas o modificadas.
+          Cada clase debe comenzar con 'package ...'.
+          No incluyas explicaciones ni comentarios.
+          EOF
+
+          echo "🧠 Contenido final del prompt:"
+          cat entrada_gpt.txt
 
 
       - name: Llamar a OpenAI para generar clases y tests
