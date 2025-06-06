@@ -44,10 +44,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq unzip openjdk-17-jdk maven
 
-      - name: Indexar clases Java existentes y preparar prompt
+      - name: Indexar y agregar contenido de clases Java existentes al prompt
         run: |
           echo "📁 Buscando clases Java dentro de repositorio-base/src/main/java..."
           find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
+
           if [ ! -s clases_existentes.txt ]; then
             echo "❌ No se encontraron archivos .java. Abortando."
             exit 1
@@ -56,35 +57,33 @@ jobs:
           echo -e "\n\n--- HISTORIA DE USUARIO ---" > entrada_gpt.txt
           cat repositorio-base/"${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
 
-          echo -e "\n\n--- CLASES DETECTADAS EN EL REPOSITORIO BASE ---" >> entrada_gpt.txt
-          cat clases_existentes.txt >> entrada_gpt.txt
+          echo -e "\n\n--- CÓDIGO EXISTENTE DEL PROYECTO ---" >> entrada_gpt.txt
+
+          while read -r clase; do
+            echo -e "\n\n// Archivo: $clase\n" >> entrada_gpt.txt
+            cat "$clase" >> entrada_gpt.txt
+          done < clases_existentes.txt
 
           cat <<'EOF' >> entrada_gpt.txt
 
           --- ANÁLISIS DE CLASES EXISTENTES ---
-
-          A continuación, entrega una tabla Markdown como esta:
+          Genera una tabla Markdown como esta:
 
           | Clase Java | Clasificación | Motivo |
           |------------|----------------|--------|
-          | Employee | REUTILIZABLE-AS-IS | Ya contiene birthDate |
-          | EmployeeServiceImpl | MODIFICABLE | Debe agregar lógica de validación para género |
-          | NuevaClaseX | NUEVA | Se requiere nueva lógica para X |
-
-          Solo incluye clases que ya existen en el proyecto o que deben crearse.
+          | Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
+          | EmployeeServiceImpl | MODIFICABLE | Debe validar antes de borrar |
+          | NuevaClaseX | NUEVA | Requerida por funcionalidad nueva |
 
           --- INSTRUCCIONES DE MODIFICACIÓN ---
-
-          1. Modifica solo las clases indicadas como MODIFICABLE, sin eliminar código anterior.
-          2. Genera nuevas clases solo si están marcadas como NUEVA.
-          3. No repitas ni sobrescribas clases existentes innecesariamente.
+          - No eliminar ni reemplazar lógica existente.
+          - Si se modifica un método, incluirlo completo con el nuevo código y lo que ya tenía.
+          - Solo generar clases nuevas si están indicadas como NUEVA.
+          - NO repetir clases ya existentes si no cambian.
 
           --- CÓDIGO A GENERAR ---
-
-          Devuelve únicamente el código Java correspondiente a las clases nuevas o modificadas. Cada clase debe comenzar con `package ...`.
-          No incluyas comentarios explicativos ni texto adicional fuera del código.
-
-          También incluye tests unitarios para validar la funcionalidad agregada.
+          Devuelve solo clases Java válidas. Cada bloque debe comenzar con `package ...`.
+          También incluye tests JUnit5 si aplica.
           EOF
 
       - name: Mostrar tabla de diagnóstico (si existe)
