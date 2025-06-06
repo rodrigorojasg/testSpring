@@ -65,30 +65,30 @@ jobs:
           echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
           cat clases_existentes.txt >> entrada_gpt.txt
 
-        cat <<'EOF' >> entrada_gpt.txt
+          cat <<'EOF' >> entrada_gpt.txt
 
-        --- ANÁLISIS (Fase 1) ---
-        Indica:
-        1. Qué clases pueden reutilizarse directamente sin cambios.
-        2. Qué clases deben modificarse (añadir métodos, anotaciones, endpoints, etc.).
-        3. Qué clases deben ser completamente nuevas.
+          --- ANÁLISIS (Fase 1) ---
+          Indica:
+          1. Qué clases pueden reutilizarse directamente sin cambios.
+          2. Qué clases deben modificarse (añadir métodos, anotaciones, endpoints, etc.).
+          3. Qué clases deben ser completamente nuevas.
 
-        --- PLAN (Fase 2) ---
-        Para cada clase marcada como modificable:
-        - Describe qué métodos o funcionalidades se agregarán.
-        - No elimines ni reescribas atributos ni métodos ya existentes.
-        - Debes mantener la clase original tal como está y agregar los nuevos métodos dentro de ella.
-        - Copia completamente la clase original y agrega los métodos nuevos en la misma clase.
-        - No uses comentarios como "Other methods..." o "existing methods".
-        - El resultado final debe ser una clase **completa y funcional**, incluyendo los métodos previos y los nuevos.
+          --- PLAN (Fase 2) ---
+          Para cada clase marcada como modificable:
+          - Describe qué métodos o funcionalidades se agregarán.
+          - No elimines ni reescribas atributos ni métodos ya existentes.
+          - Debes mantener la clase original tal como está y agregar los nuevos métodos dentro de ella.
+          - Copia completamente la clase original y agrega los métodos nuevos en la misma clase.
+          - No uses comentarios como "Other methods..." o "existing methods".
+          - El resultado final debe ser una clase **completa y funcional**, incluyendo los métodos previos y los nuevos.
 
-        --- GENERACIÓN (Fase 3) ---
-        Genera únicamente las clases nuevas o modificadas.
-        Incluye el código **completo** de cada clase.
-        Cada clase debe comenzar con `package ...`.
-        No agregues explicaciones, ni comentarios adicionales.
+          --- GENERACIÓN (Fase 3) ---
+          Genera únicamente las clases nuevas o modificadas.
+          Incluye el código **completo** de cada clase.
+          Cada clase debe comenzar con `package ...`.
+          No agregues explicaciones, ni comentarios adicionales.
 
-        EOF
+          EOF
 
 
       - name: Instalar dependencias necesarias
