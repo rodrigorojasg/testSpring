@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BfSTXeO7gIIVknaUV89QCGvAlg9mU",
+  "object": "chat.completion",
+  "created": 1749220607,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package com.example.employee;\n\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\n\n@Service\npublic class EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    public void deleteEmployee(Long id) {\n        Employee employee = employeeRepository.findById(id)\n                .orElseThrow(() -> new EmployeeNotFoundException(\"Employee not found\"));\n\n        // Start of AI modification\n        if (\"Femenino\".equalsIgnoreCase(employee.getGender())) {\n            throw new UnsupportedOperationException(\"Cannot delete female employees due to internal regulations\");\n        }\n        // End of AI modification\n\n        employeeRepository.delete(employee);\n    }\n}\npackage com.example.employee;\n\nimport org.junit.jupiter.api.Test;\nimport org.junit.jupiter.api.extension.ExtendWith;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.junit.jupiter.MockitoExtension;\nimport static org.mockito.Mockito.*;\n\nimport java.util.Optional;\n\nimport static org.junit.jupiter.api.Assertions.*;\n\n@ExtendWith(MockitoExtension.class)\npublic class EmployeeServiceTest {\n\n    @Mock\n    private EmployeeRepository employeeRepository;\n\n    @InjectMocks\n    private EmployeeService employeeService;\n\n    @Test\n    public void testDeleteEmployee_Female() {\n        Employee employee = new Employee();\n        employee.setId(1L);\n        employee.setGender(\"Femenino\");\n\n        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));\n\n        Exception exception = assertThrows(UnsupportedOperationException.class, () -> {\n            employeeService.deleteEmployee(1L);\n        });\n\n        String expectedMessage = \"Cannot delete female employees due to internal regulations\";\n        String actualMessage = exception.getMessage();\n\n        assertTrue(actualMessage.contains(expectedMessage));\n    }\n\n    @Test\n    public void testDeleteEmployee_Male() {\n        Employee employee = new Employee();\n        employee.setId(1L);\n        employee.setGender(\"Masculino\");\n\n        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));\n\n        employeeService.deleteEmployee(1L);\n\n        verify(employeeRepository, times(1)).delete(employee);\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 282,
+    "completion_tokens": 402,
+    "total_tokens": 684,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
