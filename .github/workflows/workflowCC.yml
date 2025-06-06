@@ -21,82 +21,65 @@ jobs:
         run: |
           cd repositorio-base
           git fetch --unshallow || true
-
           base_sha="${{ github.event.before }}"
           if ! git cat-file -e "$base_sha"^{commit} 2>/dev/null; then
             echo "⚠️ SHA base no válido o sin historial, usando HEAD^"
             base_sha="HEAD^"
           fi
-
-          echo "🔍 Comparando con base: $base_sha"
           archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
-
           if [ -z "$archivo" ]; then
             echo "⛔ No se encontró ninguna historia de usuario modificada. Abortando."
             exit 1
           fi
-
-          echo "📝 Historia modificada: $archivo"
           echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
 
-      - name: Leer historia de usuario y construir prompt
+      - name: Leer historia y crear archivo de entrada
         run: |
           cd repositorio-base
-
-          if [ ! -f "${{ steps.historia.outputs.ruta }}" ]; then
-            echo "⛔ No se encontró el archivo de historia de usuario: ${{ steps.historia.outputs.ruta }}"
-            exit 1
-          fi
-
-          echo "📄 Cargando historia desde: ${{ steps.historia.outputs.ruta }}"
-          cat "${{ steps.historia.outputs.ruta }}" > historia.txt
-
-          echo "📁 Buscando clases Java dentro de src/main/java..."
-          find src/main/java -type f -name "*.java" > clases_existentes.txt
-
-          if [ ! -s clases_existentes.txt ]; then
-            echo "❌ No se encontraron clases Java. Abortando."
-            exit 1
-          fi
-
-          echo "Historia de usuario recibida:" > entrada_gpt.txt
-          cat historia.txt >> entrada_gpt.txt
-
-          echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
-          cat clases_existentes.txt >> entrada_gpt.txt
-
-          cat <<'EOF' >> entrada_gpt.txt
-
-          --- ANÁLISIS (Fase 1) ---
-          Indica:
-          1. Qué clases pueden reutilizarse directamente sin cambios.
-          2. Qué clases deben modificarse (añadir métodos, anotaciones, endpoints, etc.).
-          3. Qué clases deben ser completamente nuevas.
-
-          --- PLAN (Fase 2) ---
-          Para cada clase marcada como modificable:
-          - Describe qué métodos o funcionalidades se agregarán.
-          - No elimines ni reescribas atributos ni métodos ya existentes.
-          - Debes mantener la clase original tal como está y agregar los nuevos métodos dentro de ella.
-          - Copia completamente la clase original y agrega los métodos nuevos en la misma clase.
-          - No uses comentarios como "Other methods..." o "existing methods".
-          - El resultado final debe ser una clase **completa y funcional**, incluyendo los métodos previos y los nuevos.
-
-          --- GENERACIÓN (Fase 3) ---
-          Genera únicamente las clases nuevas o modificadas.
-          Incluye el código **completo** de cada clase.
-          Cada clase debe comenzar con `package ...`.
-          No agregues explicaciones, ni comentarios adicionales.
-
-          EOF
-
+          cat "${{ steps.historia.outputs.ruta }}" > entrada_gpt.txt
 
       - name: Instalar dependencias necesarias
         run: |
           sudo apt-get update
           sudo apt-get install -y jq unzip openjdk-17-jdk maven
 
-      - name: Llamar a OpenAI para generar clases y tests
+      - name: Indexar clases y construir prompt
+        run: |
+          echo "📁 Buscando clases Java..."
+          find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
+          if [ ! -s clases_existentes.txt ]; then
+            echo "❌ No hay clases Java. Abortando."
+            exit 1
+          fi
+
+          echo -e "\nClases detectadas en el repositorio base:" >> repositorio-base/entrada_gpt.txt
+          cat clases_existentes.txt >> repositorio-base/entrada_gpt.txt
+
+          echo -e "\n--- ANÁLISIS (Fase 1) ---" >> repositorio-base/entrada_gpt.txt
+          echo "1. Qué clases pueden reutilizarse sin modificar." >> repositorio-base/entrada_gpt.txt
+          echo "2. Qué clases deben ser modificadas (añadir métodos, anotaciones, etc.)." >> repositorio-base/entrada_gpt.txt
+          echo "3. Qué clases deben ser nuevas." >> repositorio-base/entrada_gpt.txt
+
+          echo -e "\n--- DISEÑO (Fase 2) ---" >> repositorio-base/entrada_gpt.txt
+          echo "- Usa el contenido exacto de clases marcadas como modificables que aparece a continuación." >> repositorio-base/entrada_gpt.txt
+          echo "- No elimines nada del contenido original. Solo agrega lo que se indica en la historia de usuario." >> repositorio-base/entrada_gpt.txt
+
+          echo -e "\n--- CLASES COMPLETAS PARA MODIFICAR ---" >> repositorio-base/entrada_gpt.txt
+          for path in $(cat clases_existentes.txt); do
+            if grep -qE "public class (EmployeeController|EmployeeService|EmployeeServiceImpl|EmployeeRepository)" "$path"; then
+              echo -e "\n// Inicio de clase original: $path\n" >> repositorio-base/entrada_gpt.txt
+              cat "$path" >> repositorio-base/entrada_gpt.txt
+              echo -e "\n// Fin de clase original: $path\n" >> repositorio-base/entrada_gpt.txt
+            fi
+          done
+
+          echo -e "\n--- GENERACIÓN (Fase 3) ---" >> repositorio-base/entrada_gpt.txt
+          echo "- Genera únicamente las clases nuevas o modificadas." >> repositorio-base/entrada_gpt.txt
+          echo "- Usa exactamente el contenido original y agrega lo necesario." >> repositorio-base/entrada_gpt.txt
+          echo "- No omitas métodos ni reemplaces clases enteras." >> repositorio-base/entrada_gpt.txt
+          echo "- Cada clase comienza con 'package ...'. No incluyas explicaciones ni comentarios adicionales." >> repositorio-base/entrada_gpt.txt
+
+      - name: Llamar a OpenAI para generar clases
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -105,7 +88,7 @@ jobs:
           jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
             messages: [
-              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con 'package'. No incluyas explicaciones." },
+              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Usa solo clases válidas. Respeta código original si fue entregado." },
               { "role": "user", "content": $prompt }
             ],
             temperature: 0.3
@@ -116,7 +99,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d @payload.json > respuesta_gpt.json
 
-          jq -r '.choices[0].message.content // "❌ No se encontró contenido válido en la respuesta de GPT."' respuesta_gpt.json > clases_generadas.java
+          jq -r '.choices[0].message.content // "❌ No se encontró contenido válido."' respuesta_gpt.json > clases_generadas.java
 
       - name: Separar clases generadas
         run: |
@@ -153,13 +136,11 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git checkout -b feature/autogenerado-${{ github.run_id }}
-
           git add .
           if git diff --cached --quiet; then
             echo "⛔ No hay cambios para commitear, se omite push"
             exit 0
           fi
-
           git commit -m "🤖 Funcionalidad generada desde historia de usuario"
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
           git push origin HEAD
