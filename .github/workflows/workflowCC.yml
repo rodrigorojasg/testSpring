@@ -59,19 +59,26 @@ jobs:
           cat <<'EOF' >> entrada_gpt.txt
 
           --- FASE 1: DIAGNÓSTICO ---
-          Indica en una tabla qué clases:
-          1. Pueden reutilizarse tal como están.
-          2. Requieren ser modificadas (y por qué).
-          3. Deben ser creadas como nuevas.
+          Analiza todas las clases Java listadas.
+          - Clasifícalas como: REUTILIZABLE-AS-IS, MODIFICABLE o NUEVA.
+          - Justifica por qué.
 
-          --- FASE 2: DISEÑO Y GENERACIÓN ---
-          - Solo modifica clases existentes si es necesario agregar métodos para implementar la historia.
-          - No elimines ni sobreescribas código existente.
-          - Crea nuevas clases solo si no existe ninguna adecuada.
-          - Incluye también pruebas unitarias con JUnit 5.
+          --- FASE 2: PLAN DE MODIFICACIÓN ---
+          Para cada clase MODIFICABLE, explica brevemente qué se agregará (sin eliminar código existente).
+          Solo modifica clases si es estrictamente necesario.
 
-          Cada clase debe comenzar con 'package ...'. No incluyas explicaciones ni comentarios externos.
+          --- FASE 3: GENERACIÓN DE CÓDIGO ---
+          - Inserta la nueva funcionalidad solo en clases existentes relevantes (ej: EmployeeServiceImpl).
+          - NO generes clases duplicadas que ya existen.
+          - NO cambies de paquete.
+          - NO repitas nombres de clases ya usadas.
+          - NO omitas métodos existentes; si modificas uno, incluye su versión completa con la lógica nueva más la anterior.
+
+          También genera tests unitarios para validar la funcionalidad agregada.
+
+          Cada clase debe empezar con 'package ...'. No incluyas comentarios ni texto adicional.
           EOF
+
 
       - name: Llamar a OpenAI para generar código
         env:
