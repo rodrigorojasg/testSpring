@@ -23,13 +23,12 @@ jobs:
           git fetch --unshallow || true
 
           base_sha="${{ github.event.before }}"
-          if ! git cat-file -e "$base_sha"^{{commit}} 2>/dev/null; then
+          if ! git cat-file -e "$base_sha"^{commit} 2>/dev/null; then
             echo "⚠️ SHA base no válido o sin historial, usando HEAD^"
             base_sha="HEAD^"
           fi
 
           echo "🔍 Comparando con base: $base_sha"
-
           archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
 
           if [ -z "$archivo" ]; then
@@ -40,23 +39,23 @@ jobs:
           echo "📝 Historia modificada: $archivo"
           echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
 
-      - name: Leer contenido de historia de usuario
+      - name: Leer historia de usuario y construir prompt
         run: |
           cd repositorio-base
+
+          if [ ! -f "${{ steps.historia.outputs.ruta }}" ]; then
+            echo "⛔ No se encontró el archivo de historia de usuario: ${{ steps.historia.outputs.ruta }}"
+            exit 1
+          fi
+
+          echo "📄 Cargando historia desde: ${{ steps.historia.outputs.ruta }}"
           cat "${{ steps.historia.outputs.ruta }}" > historia.txt
 
-      - name: Instalar dependencias necesarias
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq unzip openjdk-17-jdk maven
-
-      - name: Indexar clases Java existentes y preparar prompt
-        run: |
-          echo "📁 Buscando clases Java dentro de repositorio-base/src/main/java..."
-          find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
+          echo "📁 Buscando clases Java dentro de src/main/java..."
+          find src/main/java -type f -name "*.java" > clases_existentes.txt
 
           if [ ! -s clases_existentes.txt ]; then
-            echo "❌ No se encontraron archivos .java. Abortando."
+            echo "❌ No se encontraron clases Java. Abortando."
             exit 1
           fi
 
@@ -68,33 +67,27 @@ jobs:
 
           cat <<'EOF' >> entrada_gpt.txt
 
-          --- INSTRUCCIONES ESTRICTAS ---
+          --- ANÁLISIS (Fase 1) ---
+          Indica:
+          1. Qué clases pueden reutilizarse sin modificar.
+          2. Qué clases deben ser modificadas (añadir métodos, anotaciones, endpoints, etc.).
+          3. Qué clases deben ser completamente nuevas.
 
-          Fase 1: DIAGNÓSTICO
-          - Enumera las clases detectadas como:
-            - Reutilizables (sin modificar)
-            - Modificables (se agregan métodos o lógica sin eliminar lo existente)
-            - Nuevas (no existen y deben crearse)
-          - Usa nombres exactos según lo entregado en el resumen de clases.
-          - No inventes clases.
+          --- PLAN (Fase 2) ---
+          Para cada clase modificable:
+          - Explica brevemente qué se agregará.
+          - No elimines ni sobrescribas atributos, anotaciones ni métodos ya existentes.
 
-          Fase 2: PLAN DE CAMBIOS
-          - Para cada clase modificable:
-            - Explica brevemente qué se debe agregar o extender y por qué.
-            - No elimines atributos, anotaciones ni métodos existentes.
-
-          Fase 3: GENERACIÓN DE CÓDIGO
-          - Genera solo las clases nuevas y las clases modificadas.
-          - Cada clase debe empezar con 'package ...' y ser código válido de Java.
-          - Si una clase debe modificarse, incluye solo el contenido nuevo (ej: nuevos métodos o endpoints), y respeta el 'package' original.
-          - No generes clases reutilizables.
-          - No incluyas comentarios ni explicaciones.
-          - No generes duplicados o clases que ya existen sin cambios.
-
-          --- FIN ---
+          --- GENERACIÓN (Fase 3) ---
+          Genera solo las clases nuevas o modificadas.
+          Cada clase debe comenzar con 'package'.
+          No incluyas explicaciones ni comentarios.
           EOF
 
-          echo "🧠 Contenido final del prompt:" && cat entrada_gpt.txt
+      - name: Instalar dependencias necesarias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip openjdk-17-jdk maven
 
       - name: Llamar a OpenAI para generar clases y tests
         env:
@@ -105,7 +98,7 @@ jobs:
           jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
             messages: [
-              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con 'package'. No incluyas texto adicional." },
+              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con 'package'. No incluyas explicaciones." },
               { "role": "user", "content": $prompt }
             ],
             temperature: 0.3
