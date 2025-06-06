@@ -1,0 +1,16 @@
+--- ANÁLISIS DE CLASES EXISTENTES ---
+
+| Clase Java | Clasificación | Motivo |
+|------------|----------------|--------|
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la validación |
+| EmployeeRepository | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |
+| EmployeeService | REUTILIZABLE-AS-IS | La interfaz no necesita modificaciones |
+| EmployeeServiceImpl | MODIFICABLE | Necesita validación adicional en el método `deleteEmployeeById` |
+| EmployeeController | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |
+| EmployeeCoreApiApplication | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |
+
+--- PLAN DE MODIFICACIÓN ---
+
+1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById` para incluir una validación del género del empleado antes de proceder con la eliminación. Si el género es "Femenino", se debe lanzar una excepción. Esta modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.
+
+No se requiere la creación de nuevas clases para esta funcionalidad. Todos los cambios se pueden realizar en la clase `EmployeeServiceImpl` existente.

@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BfbCC4PllDvu6DZVyhaheN4vhp0xz",
+  "object": "chat.completion",
+  "created": 1749254128,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "--- ANÁLISIS DE CLASES EXISTENTES ---\n\n| Clase Java | Clasificación | Motivo |\n|------------|----------------|--------|\n| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la validación |\n| EmployeeRepository | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |\n| EmployeeService | REUTILIZABLE-AS-IS | La interfaz no necesita modificaciones |\n| EmployeeServiceImpl | MODIFICABLE | Necesita validación adicional en el método `deleteEmployeeById` |\n| EmployeeController | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |\n| EmployeeCoreApiApplication | REUTILIZABLE-AS-IS | No necesita modificaciones para la nueva funcionalidad |\n\n--- PLAN DE MODIFICACIÓN ---\n\n1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById` para incluir una validación del género del empleado antes de proceder con la eliminación. Si el género es \"Femenino\", se debe lanzar una excepción. Esta modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.\n\nNo se requiere la creación de nuevas clases para esta funcionalidad. Todos los cambios se pueden realizar en la clase `EmployeeServiceImpl` existente.",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1497,
+    "completion_tokens": 298,
+    "total_tokens": 1795,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
