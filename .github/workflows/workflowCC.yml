@@ -92,26 +92,55 @@ jobs:
           echo "📋 Tabla de clases según GPT:"
           grep '|' repositorio-base/respuesta_gpt.json || echo "⚠️ GPT no generó tabla de diagnóstico"
 
-
-      - name: Llamar a OpenAI para generar código
+      - name: Llamar a OpenAI para diagnóstico (solo análisis y clasificación)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           cd repositorio-base
           PROMPT=$(cat entrada_gpt.txt)
+
           jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
             messages: [
-              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases Java y tests JUnit válidos, comenzando con 'package'. No incluyas explicaciones ni texto adicional." },
+              { "role": "system", "content": "Eres un analizador experto de código Java. Devuelve solo el análisis de clases existentes y el plan de modificación. No devuelvas código aún." },
               { "role": "user", "content": $prompt }
             ],
-            temperature: 0.3
-          }' > payload.json
+            temperature: 0.2
+          }' > payload_diagnostico.json
 
           curl -s https://api.openai.com/v1/chat/completions \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
-            -d @payload.json > respuesta_gpt.json
+            -d @payload_diagnostico.json > respuesta_gpt_diagnostico.json
+
+          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt_diagnostico.json > diagnostico_gpt.txt
+
+      - name: Mostrar análisis GPT
+        run: |
+          echo "📋 Tabla de diagnóstico de clases:"
+          cat repositorio-base/diagnostico_gpt.txt || echo "⚠️ No se pudo leer diagnóstico"
+
+      - name: Llamar a OpenAI para generación de código
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+
+          PROMPT=$(cat entrada_gpt.txt)
+
+          jq -n --arg prompt "$PROMPT" '{
+            model: "gpt-4",
+            messages: [
+              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos. Cada bloque debe comenzar con 'package ...'. No incluyas texto adicional." },
+              { "role": "user", "content": $prompt }
+            ],
+            temperature: 0.3
+          }' > payload_generacion.json
+
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload_generacion.json > respuesta_gpt.json
 
           jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
 
