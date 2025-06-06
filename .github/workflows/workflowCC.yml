@@ -107,11 +107,16 @@ jobs:
             ],
             temperature: 0.2
           }' > payload_diagnostico.json
+          
 
           curl -s https://api.openai.com/v1/chat/completions \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d @payload_diagnostico.json > respuesta_gpt_diagnostico.json
+
+          echo "📨 Respuesta de OpenAI:"
+          cat respuesta_gpt_diagnostico.json
+
 
           jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt_diagnostico.json > diagnostico_gpt.txt
 
@@ -137,10 +142,17 @@ jobs:
             temperature: 0.3
           }' > payload_generacion.json
 
+          echo "🧾 Payload generado para OpenAI:"
+          payload_generacion.json
+
           curl -s https://api.openai.com/v1/chat/completions \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d @payload_generacion.json > respuesta_gpt.json
+
+          echo "📨 Respuesta de OpenAI:"
+          cat respuesta_gpt.json    
+
 
           jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
 
