@@ -1,0 +1,21 @@
+Análisis de Clases Existentes:
+
+1. Clase Empleado: Esta clase probablemente contiene la información del empleado, incluyendo su género. Debería haber un método getter para obtener el género del empleado.
+
+2. Clase AdministradorDelSistema: Esta clase probablemente contiene el método para eliminar empleados. Este es el método que necesitaremos modificar.
+
+Plan de Modificación:
+
+1. En la clase AdministradorDelSistema, localizar el método que se utiliza para eliminar empleados. Este método probablemente toma un objeto Empleado como argumento.
+
+2. Dentro de este método, antes de la lógica de eliminación existente, insertar una nueva lógica de validación. Esta validación debería llamar al método getter del género en el objeto Empleado y comprobar si el valor es "Femenino".
+
+3. Si el género es "Femenino", entonces lanzar una excepción o retornar un error controlado. Este error debería indicar claramente que no se permite eliminar empleados femeninos.
+
+4. Si el género no es "Femenino", entonces la lógica de eliminación existente puede proceder como de costumbre.
+
+5. Asegurarse de que esta nueva lógica de validación está delimitada por comentarios que indican claramente el inicio y fin del cambio realizado. Estos comentarios también deben indicar brevemente lo que hace la nueva lógica.
+
+6. No eliminar ni reemplazar ningún método existente en la clase AdministradorDelSistema. La lógica de eliminación existente también debe permanecer intacta, aparte de la adición de la nueva lógica de validación.
+
+7. Finalmente, probar el método modificado para asegurarse de que funciona como se espera. Esto debería incluir pruebas con empleados de género "Femenino", "Masculino" y otros valores para asegurarse de que la validación y eliminación funcionan correctamente.
