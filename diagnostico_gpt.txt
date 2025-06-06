@@ -1,0 +1,18 @@
+--- ANÁLISIS DE CLASES EXISTENTES ---
+
+| Clase Java | Clasificación | Motivo |
+|------------|----------------|--------|
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la nueva validación |
+| EmployeeRepository | REUTILIZABLE-AS-IS | Se utiliza para realizar operaciones CRUD en la base de datos |
+| EmployeeService | REUTILIZABLE-AS-IS | Interfaz que define los métodos del servicio |
+| EmployeeServiceImpl | MODIFICABLE | Debe validar el género antes de eliminar un empleado |
+| EmployeeController | REUTILIZABLE-AS-IS | Controlador que maneja las solicitudes HTTP |
+| EmployeeCoreApiApplication | REUTILIZABLE-AS-IS | Clase principal de la aplicación |
+
+--- PLAN DE MODIFICACIÓN ---
+
+1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación del género del empleado antes de eliminarlo. Si el género es "Femenino", se lanzará una excepción. Si el género es "Masculino" u otro valor, se permitirá la eliminación normal.
+
+2. Crear una nueva excepción personalizada `SensitiveDataException` que se lanzará cuando se intente eliminar un empleado de género femenino. Esta excepción proporcionará un mensaje de error claro y específico.
+
+3. Crear pruebas unitarias para el método modificado `deleteEmployeeById(Long id)` en la clase `EmployeeServiceImplTest`. Estas pruebas verificarán que la nueva validación de género funciona correctamente y que se lanza la excepción `SensitiveDataException` cuando se intenta eliminar un empleado de género femenino.
