@@ -123,13 +123,38 @@ jobs:
           echo "📋 Tabla de diagnóstico de clases:"
           cat repositorio-base/diagnostico_gpt.txt || echo "⚠️ No se pudo leer diagnóstico"
 
+      - name: Preparar entrada para generación de código
+        run: |
+          cd repositorio-base
+
+          echo "--- HISTORIA DE USUARIO ---" > entrada_final_gpt.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> entrada_final_gpt.txt
+
+          echo -e "\n\n--- DIAGNÓSTICO Y PLAN DE CLASES ---" >> entrada_final_gpt.txt
+          cat diagnostico_gpt.txt >> entrada_final_gpt.txt
+
+          cat <<'EOF' >> entrada_final_gpt.txt
+
+          --- INSTRUCCIONES DE GENERACIÓN DE CÓDIGO ---
+          - Modifica únicamente las clases marcadas como MODIFICABLE.
+          - Crea nuevas clases solo si están indicadas como NUEVA.
+          - No cambies de paquete ni nombre de clase.
+          - Si modificas un método, inclúyelo completo con su lógica anterior más la nueva.
+          - No omitas lógica existente.
+          - Cada clase debe comenzar con `package ...`.
+          - Devuelve únicamente clases y tests JUnit 5 válidos.
+          - No incluyas explicaciones ni comentarios adicionales.
+
+          EOF
+
+
       - name: Llamar a OpenAI para generación de código
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           cd repositorio-base
 
-          PROMPT=$(cat entrada_gpt.txt)
+          PROMPT=$(cat entrada_final_gpt.txt)
 
           jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
