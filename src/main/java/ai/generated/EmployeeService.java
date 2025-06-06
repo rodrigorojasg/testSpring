@@ -1,4 +1,6 @@
-package com.example.employee;
+
+package com.example.demo.employee;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,7 +16,9 @@ public class EmployeeService {
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found"));
 
         // Start of AI modification
-        if ("Femenino".equalsIgnoreCase(employee.getGender())) {
+
+        if (employee.getGender().equalsIgnoreCase("Femenino")) {
+
             throw new UnsupportedOperationException("Cannot delete female employees due to internal regulations");
         }
         // End of AI modification
@@ -22,3 +26,4 @@ public class EmployeeService {
         employeeRepository.delete(employee);
     }
 }
+
