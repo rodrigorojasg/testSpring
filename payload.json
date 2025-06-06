@@ -1,0 +1,14 @@
+{
+  "model": "gpt-4",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con package. No incluyas explicaciones."
+    },
+    {
+      "role": "user",
+      "content": "Historia de usuario recibida:\nnombre: Obtener empleados nacidos antes del año 2000\ncomo: Administrador del sistema\nquiero: Obtener una lista de empleados que hayan nacido antes del año 2000\npara: Poder segmentar a los   empleados por generaciones y aplicar políticas diferenciadas\nClases detectadas en el repositorio base:\nsrc/main/java/test/core/api/model/Employee.java\nsrc/main/java/test/core/api/repository/EmployeeRepository.java\nsrc/main/java/test/core/api/EmployeeCoreApiApplication.java\nsrc/main/java/test/core/api/controller/EmployeeController.java\nsrc/main/java/test/core/api/service/EmployeeService.java\nsrc/main/java/test/core/api/service/impl/EmployeeServiceImpl.java\n\n--- ANÁLISIS (Fase 1) ---\nIndica:\n1. Qué clases pueden reutilizarse sin modificar.\n2. Qué clases deben ser modificadas (añadir métodos, anotaciones, endpoints, etc.).\n3. Qué clases deben ser completamente nuevas.\n\n--- PLAN (Fase 2) ---\nPara cada clase modificable:\n- Explica brevemente qué se agregará.\n- No elimines ni sobrescribas atributos, anotaciones ni métodos ya existentes.\n\n--- GENERACIÓN (Fase 3) ---\nGenera solo las clases nuevas o modificadas.\nCada clase debe comenzar con 'package'.\nNo incluyas explicaciones ni comentarios."
+    }
+  ],
+  "temperature": 0.3
+}
