@@ -1,0 +1,14 @@
+{
+  "model": "gpt-4",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con package. No incluyas explicaciones."
+    },
+    {
+      "role": "user",
+      "content": "Historia de usuario recibida:\nnombre: Obtener empleados nacidos antes del año 2000\ncomo: Administrador del sistema\nquiero: Obtener una lista de empleados que hayan nacido antes del año 2000\npara: Poder segmentar a los empleados por generaciones y aplicar políticas diferenciadas\nClases detectadas en el repositorio base:\nsrc/main/java/test/core/api/model/Employee.java\nsrc/main/java/test/core/api/repository/EmployeeRepository.java\nsrc/main/java/test/core/api/EmployeeCoreApiApplication.java\nsrc/main/java/test/core/api/controller/EmployeeController.java\nsrc/main/java/test/core/api/service/EmployeeService.java\nsrc/main/java/test/core/api/service/impl/EmployeeServiceImpl.java\n\n--- ANÁLISIS (Fase 1) ---\nIndica:\n1. Qué clases pueden reutilizarse directamente sin cambios.\n2. Qué clases deben modificarse (añadir métodos, anotaciones, endpoints, etc.).\n3. Qué clases deben ser completamente nuevas.\n\n--- PLAN (Fase 2) ---\nPara cada clase marcada como modificable:\n- Describe qué métodos o funcionalidades se agregarán.\n- No elimines ni reescribas atributos ni métodos ya existentes.\n- Debes mantener la clase original tal como está y agregar los nuevos métodos dentro de ella.\n- Copia completamente la clase original y agrega los métodos nuevos en la misma clase.\n- No uses comentarios como \"Other methods...\" o \"existing methods\".\n- El resultado final debe ser una clase **completa y funcional**, incluyendo los métodos previos y los nuevos.\n\n--- GENERACIÓN (Fase 3) ---\nGenera únicamente las clases nuevas o modificadas.\nIncluye el código **completo** de cada clase.\nCada clase debe comenzar con `package ...`.\nNo agregues explicaciones, ni comentarios adicionales."
+    }
+  ],
+  "temperature": 0.3
+}
