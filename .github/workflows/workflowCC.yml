@@ -52,32 +52,45 @@ jobs:
             echo "❌ No se encontraron archivos .java. Abortando."
             exit 1
           fi
-          echo -e "\n\n--- HISTORIA DE USUARIO ---" >> entrada_gpt.txt
+
+          echo -e "\n\n--- HISTORIA DE USUARIO ---" > entrada_gpt.txt
           cat repositorio-base/"${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
+
           echo -e "\n\n--- CLASES DETECTADAS EN EL REPOSITORIO BASE ---" >> entrada_gpt.txt
           cat clases_existentes.txt >> entrada_gpt.txt
+
           cat <<'EOF' >> entrada_gpt.txt
 
-          --- FASE 1: DIAGNÓSTICO ---
-          Analiza todas las clases Java listadas.
-          - Clasifícalas como: REUTILIZABLE-AS-IS, MODIFICABLE o NUEVA.
-          - Justifica por qué.
+          --- ANÁLISIS DE CLASES EXISTENTES ---
 
-          --- FASE 2: PLAN DE MODIFICACIÓN ---
-          Para cada clase MODIFICABLE, explica brevemente qué se agregará (sin eliminar código existente).
-          Solo modifica clases si es estrictamente necesario.
+          A continuación, entrega una tabla Markdown como esta:
 
-          --- FASE 3: GENERACIÓN DE CÓDIGO ---
-          - Inserta la nueva funcionalidad solo en clases existentes relevantes (ej: EmployeeServiceImpl).
-          - NO generes clases duplicadas que ya existen.
-          - NO cambies de paquete.
-          - NO repitas nombres de clases ya usadas.
-          - NO omitas métodos existentes; si modificas uno, incluye su versión completa con la lógica nueva más la anterior.
+          | Clase Java | Clasificación | Motivo |
+          |------------|----------------|--------|
+          | Employee | REUTILIZABLE-AS-IS | Ya contiene birthDate |
+          | EmployeeServiceImpl | MODIFICABLE | Debe agregar lógica de validación para género |
+          | NuevaClaseX | NUEVA | Se requiere nueva lógica para X |
 
-          También genera tests unitarios para validar la funcionalidad agregada.
+          Solo incluye clases que ya existen en el proyecto o que deben crearse.
 
-          Cada clase debe empezar con 'package ...'. No incluyas comentarios ni texto adicional.
+          --- INSTRUCCIONES DE MODIFICACIÓN ---
+
+          1. Modifica solo las clases indicadas como MODIFICABLE, sin eliminar código anterior.
+          2. Genera nuevas clases solo si están marcadas como NUEVA.
+          3. No repitas ni sobrescribas clases existentes innecesariamente.
+
+          --- CÓDIGO A GENERAR ---
+
+          Devuelve únicamente el código Java correspondiente a las clases nuevas o modificadas. Cada clase debe comenzar con `package ...`.
+          No incluyas comentarios explicativos ni texto adicional fuera del código.
+
+          También incluye tests unitarios para validar la funcionalidad agregada.
           EOF
+
+      - name: Mostrar tabla de diagnóstico (si existe)
+        run: |
+          echo "📋 Tabla de clases según GPT:"
+          grep '|' repositorio-base/respuesta_gpt.json || echo "⚠️ GPT no generó tabla de diagnóstico"
 
 
       - name: Llamar a OpenAI para generar código
