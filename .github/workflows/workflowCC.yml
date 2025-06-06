@@ -46,8 +46,10 @@ jobs:
 
       - name: Indexar y agregar contenido de clases Java existentes al prompt
         run: |
-          echo "📁 Buscando clases Java dentro de repositorio-base/src/main/java..."
-          find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
+          cd repositorio-base
+
+          echo "📁 Buscando clases Java..."
+          find src/main/java -type f -name "*.java" > clases_existentes.txt
 
           if [ ! -s clases_existentes.txt ]; then
             echo "❌ No se encontraron archivos .java. Abortando."
@@ -55,7 +57,7 @@ jobs:
           fi
 
           echo -e "\n\n--- HISTORIA DE USUARIO ---" > entrada_gpt.txt
-          cat repositorio-base/"${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
 
           echo -e "\n\n--- CÓDIGO EXISTENTE DEL PROYECTO ---" >> entrada_gpt.txt
 
