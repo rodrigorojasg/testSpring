@@ -1,0 +1,154 @@
+name: Generar funcionalidad desde historia de usuario (Encadenado)
+
+on:
+  push:
+    paths:
+      - 'historias-usuario/**.yml'
+
+jobs:
+  analizar_y_generar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio actual
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          path: repositorio-base
+
+      - name: Detectar historia modificada
+        id: historia
+        run: |
+          cd repositorio-base
+          git fetch --unshallow || true
+          base_sha="${{ github.event.before }}"
+          if ! git cat-file -e "$base_sha"^{{commit}} 2>/dev/null; then
+            base_sha="HEAD^"
+          fi
+          archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
+          if [ -z "$archivo" ]; then
+            echo "⛔ No hay historia modificada"
+            exit 1
+          fi
+          echo "ruta=$archivo" >> "$GITHUB_OUTPUT"
+
+      - name: Listar clases existentes
+        run: |
+          cd repositorio-base
+          find src/main/java -type f -name '*.java' > clases_existentes.txt
+
+      - name: Fase 1 - Análisis de clases (GPT)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+          echo "Historia de usuario:" > prompt_analisis.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> prompt_analisis.txt
+          echo -e "\nClases encontradas:" >> prompt_analisis.txt
+          cat clases_existentes.txt >> prompt_analisis.txt
+          cat <<'EOT' >> prompt_analisis.txt
+
+          Analiza las clases listadas y clasifícalas como:
+          - REUTILIZABLE-AS-IS
+          - MODIFICABLE (explica qué se modifica)
+          - NUEVA (explica por qué crearla)
+          Devuelve una tabla markdown.
+          EOT
+
+          jq -n --arg prompt "$(cat prompt_analisis.txt)" ' {
+            model: "gpt-4",
+            messages: [
+              {"role": "system", "content": "Eres un analista de arquitectura Java"},
+              {"role": "user", "content": $prompt}
+            ]
+          }' > payload_analisis.json
+
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload_analisis.json > analisis_gpt.json
+
+          jq -r '.choices[0].message.content' analisis_gpt.json > diagnostico.txt
+          echo "📋 Diagnóstico generado:"
+          cat diagnostico.txt
+
+      - name: Extraer código de clases modificables
+        run: |
+          cd repositorio-base
+          grep MODIFICABLE diagnostico.txt | cut -d '|' -f2 | sed 's/ //g' > clases_modificables.txt
+          mkdir -p clases_codigo
+          while read class; do
+            path=$(find src/main/java -type f -name "$class.java" | head -n1)
+            if [ -n "$path" ]; then
+              echo "// ===== Archivo: $path =====" >> clases_codigo/originales.java
+              cat "$path" >> clases_codigo/originales.java
+              echo -e "\n\n" >> clases_codigo/originales.java
+            fi
+          done < clases_modificables.txt
+
+      - name: Fase 2 - Generación de clases (GPT)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd repositorio-base
+          cat <<'EOT' > prompt_generacion.txt
+          Usa el siguiente diagnóstico para generar las clases nuevas o modificadas. No modifiques clases si no lo indica el diagnóstico. No elimines código existente. Agrega métodos nuevos o ajusta los existentes manteniendo su lógica.
+          Cada clase debe iniciar con 'package ...'
+          No incluyas comentarios explicativos ni texto adicional.
+          EOT
+          cat diagnostico.txt >> prompt_generacion.txt
+          echo "Historia de usuario:" >> prompt_generacion.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> prompt_generacion.txt
+          echo "\nCódigo original relevante:" >> prompt_generacion.txt
+          cat clases_codigo/originales.java >> prompt_generacion.txt
+
+          jq -n --arg prompt "$(cat prompt_generacion.txt)" ' {
+            model: "gpt-4",
+            messages: [
+              {"role": "system", "content": "Eres un generador de código Java Spring Boot experto."},
+              {"role": "user", "content": $prompt}
+            ]
+          }' > payload_generacion.json
+
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload_generacion.json > generacion_gpt.json
+
+          jq -r '.choices[0].message.content' generacion_gpt.json > clases_generadas.java
+
+      - name: Separar y guardar clases generadas
+        run: |
+          cd repositorio-base
+          mkdir -p src/main/java/ai/generated
+          mkdir -p src/test/java/ai/generated
+          csplit --quiet --prefix=clase_ --suffix-format=%02d.java clases_generadas.java "/^package /" {*}
+          for file in clase_*.java; do
+            if grep -q '@Test' "$file"; then
+              mv "$file" src/test/java/ai/generated/
+            else
+              mv "$file" src/main/java/ai/generated/
+            fi
+          done
+
+      - name: Ejecutar pruebas
+        run: |
+          cd repositorio-base
+          mvn test || echo "⚠️ Algunos tests fallaron"
+
+      - name: Commit y push a nueva rama
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          cd repositorio-base
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout -b feature/autogenerado-${{ github.run_id }}
+          git add .
+          if git diff --cached --quiet; then
+            echo "⛔ Sin cambios para commit"
+            exit 0
+          fi
+          git commit -m "🤖 Funcionalidad generada desde historia de usuario"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+          git push origin HEAD
