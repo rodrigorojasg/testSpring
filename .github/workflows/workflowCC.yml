@@ -96,17 +96,15 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           cd repositorio-base
-          PROMPT=$(cat entrada_gpt.txt)
 
-          jq -n --arg prompt "$PROMPT" '{
+          jq -Rs --arg SYSTEM_MSG "Eres un analizador experto de código Java. Devuelve solo el análisis de clases existentes y el plan de modificación. No devuelvas código aún." '{
             model: "gpt-4",
             messages: [
-              { "role": "system", "content": "Eres un analizador experto de código Java. Devuelve solo el análisis de clases existentes y el plan de modificación. No devuelvas código aún." },
-              { "role": "user", "content": $prompt }
+              { "role": "system", "content": $SYSTEM_MSG },
+              { "role": "user", "content": . }
             ],
             temperature: 0.2
-          }' > payload_diagnostico.json
-          
+          }' entrada_gpt.txt > payload_diagnostico.json
 
           curl -s https://api.openai.com/v1/chat/completions \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -115,7 +113,6 @@ jobs:
 
           echo "📨 Respuesta de OpenAI:"
           cat respuesta_gpt_diagnostico.json
-
 
           jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt_diagnostico.json > diagnostico_gpt.txt
 
