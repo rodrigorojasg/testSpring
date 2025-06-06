@@ -23,12 +23,13 @@ jobs:
           git fetch --unshallow || true
 
           base_sha="${{ github.event.before }}"
-          if ! git cat-file -e "$base_sha"^{commit} 2>/dev/null; then
+          if ! git cat-file -e "$base_sha"^{{commit}} 2>/dev/null; then
             echo "⚠️ SHA base no válido o sin historial, usando HEAD^"
             base_sha="HEAD^"
           fi
 
           echo "🔍 Comparando con base: $base_sha"
+
           archivo=$(git diff --name-only "$base_sha" HEAD | grep '^historias-usuario/.*\.yml$' | head -n 1 || true)
 
           if [ -z "$archivo" ]; then
@@ -42,7 +43,7 @@ jobs:
       - name: Leer contenido de historia de usuario
         run: |
           cd repositorio-base
-          cat "${{ steps.historia.outputs.ruta }}" > entrada_gpt.txt
+          cat "${{ steps.historia.outputs.ruta }}" > historia.txt
 
       - name: Instalar dependencias necesarias
         run: |
@@ -60,63 +61,40 @@ jobs:
           fi
 
           echo "Historia de usuario recibida:" > entrada_gpt.txt
-          cat repositorio-base/${{ steps.historia.outputs.ruta }} >> entrada_gpt.txt
+          cat historia.txt >> entrada_gpt.txt
 
-          echo -e "\nResumen de clases existentes (nombre + contenido relevante):" >> entrada_gpt.txt
-          while read -r clase; do
-            echo -e "\n--- ${clase} ---" >> entrada_gpt.txt
-            echo "package $(grep '^package' "$clase")" >> entrada_gpt.txt
-            grep -E 'public (class|interface|enum)|@Entity|@Table|private|protected|public' "$clase" | head -n 50 >> entrada_gpt.txt
-          done < clases_existentes.txt
-
+          echo -e "\nClases detectadas en el repositorio base:" >> entrada_gpt.txt
+          cat clases_existentes.txt >> entrada_gpt.txt
 
           cat <<'EOF' >> entrada_gpt.txt
 
-          --- ANÁLISIS (Fase 1) ---
-          Analiza las clases detectadas. Indica:
-          1. Qué clases pueden reutilizarse sin modificar.
-          2. Qué clases deben ser modificadas (añadir métodos, anotaciones, etc.).
-          3. Qué clases deben ser nuevas.
+          --- INSTRUCCIONES ESTRICTAS ---
 
-          --- DISEÑO (Fase 2) ---
-          Para las clases a modificar:
-          - Explica brevemente qué se agrega y por qué.
-          - No elimines atributos ni sobrescribas lógica existente.
+          Fase 1: DIAGNÓSTICO
+          - Enumera las clases detectadas como:
+            - Reutilizables (sin modificar)
+            - Modificables (se agregan métodos o lógica sin eliminar lo existente)
+            - Nuevas (no existen y deben crearse)
+          - Usa nombres exactos según lo entregado en el resumen de clases.
+          - No inventes clases.
 
-          --- GENERACIÓN (Fase 3) ---
-          Genera únicamente las clases nuevas o modificadas.
-          Cada clase debe comenzar con 'package ...'.
-          No incluyas explicaciones ni comentarios.
+          Fase 2: PLAN DE CAMBIOS
+          - Para cada clase modificable:
+            - Explica brevemente qué se debe agregar o extender y por qué.
+            - No elimines atributos, anotaciones ni métodos existentes.
+
+          Fase 3: GENERACIÓN DE CÓDIGO
+          - Genera solo las clases nuevas y las clases modificadas.
+          - Cada clase debe empezar con 'package ...' y ser código válido de Java.
+          - Si una clase debe modificarse, incluye solo el contenido nuevo (ej: nuevos métodos o endpoints), y respeta el 'package' original.
+          - No generes clases reutilizables.
+          - No incluyas comentarios ni explicaciones.
+          - No generes duplicados o clases que ya existen sin cambios.
+
+          --- FIN ---
           EOF
 
-          echo "🧠 Contenido final del prompt:"
-          cat entrada_gpt.txt
-
-      - name: Análisis previo de clases (diagnóstico)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          cd repositorio-base
-          PROMPT=$(cat entrada_gpt.txt)
-          jq -n --arg prompt "$PROMPT" ' {
-            model: "gpt-4",
-            messages: [
-              {
-                "role": "system",
-                "content": "Eres un arquitecto de software. Clasifica las clases Java existentes como: reutilizables, modificables o nuevas según la historia de usuario. Solo devuelve una tabla en Markdown."
-              },
-              { "role": "user", "content": $prompt }
-            ],
-            temperature: 0.2
-          }' > payload_diagnostico.json
-
-          curl -s https://api.openai.com/v1/chat/completions \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d @payload_diagnostico.json > diagnostico.json
-
-          echo "📋 Diagnóstico de clases:"
-          jq -r '.choices[0].message.content // "❌ No se encontró diagnóstico válido."' diagnostico.json
+          echo "🧠 Contenido final del prompt:" && cat entrada_gpt.txt
 
       - name: Llamar a OpenAI para generar clases y tests
         env:
@@ -124,7 +102,7 @@ jobs:
         run: |
           cd repositorio-base
           PROMPT=$(cat entrada_gpt.txt)
-          jq -n --arg prompt "$PROMPT" ' {
+          jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
             messages: [
               { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos, separados por líneas que comiencen con 'package'. No incluyas texto adicional." },
