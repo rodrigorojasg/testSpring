@@ -1,0 +1,28 @@
+Historia de usuario recibida:
+nombre: Obtener empleados nacidos antes del año 2000
+como: Administrador del sistema
+quiero: Obtener una lista de empleados que hayan nacido antes del año 2000
+para: Poder segmentar  a los empleados por generaciones y aplicar políticas diferenciadas
+Clases detectadas en el repositorio base:
+src/main/java/test/core/api/model/Employee.java
+src/main/java/test/core/api/repository/EmployeeRepository.java
+src/main/java/test/core/api/EmployeeCoreApiApplication.java
+src/main/java/test/core/api/controller/EmployeeController.java
+src/main/java/test/core/api/service/EmployeeService.java
+src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java
+
+--- ANÁLISIS (Fase 1) ---
+Indica:
+1. Qué clases pueden reutilizarse sin modificar.
+2. Qué clases deben ser modificadas (añadir métodos, anotaciones, endpoints, etc.).
+3. Qué clases deben ser completamente nuevas.
+
+--- PLAN (Fase 2) ---
+Para cada clase modificable:
+- Explica brevemente qué se agregará.
+- No elimines ni sobrescribas atributos, anotaciones ni métodos ya existentes.
+
+--- GENERACIÓN (Fase 3) ---
+Genera solo las clases nuevas o modificadas.
+Cada clase debe comenzar con 'package'.
+No incluyas explicaciones ni comentarios.

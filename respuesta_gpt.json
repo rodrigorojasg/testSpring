@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BfGC0mNHjYQgrcdRzFcrxWVtYepzT",
+  "object": "chat.completion",
+  "created": 1749173392,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "--- ANÁLISIS (Fase 1) ---\n1. Las clases que pueden reutilizarse sin modificar son: Employee.java, EmployeeCoreApiApplication.java\n2. Las clases que deben ser modificadas son: EmployeeRepository.java, EmployeeService.java, EmployeeServiceImpl.java, EmployeeController.java\n3. No se necesitan clases completamente nuevas.\n\n--- PLAN (Fase 2) ---\n- EmployeeRepository.java: Se agregará un nuevo método para buscar empleados nacidos antes del año 2000.\n- EmployeeService.java y EmployeeServiceImpl.java: Se agregará un nuevo método para llamar al método del repositorio que se acaba de crear.\n- EmployeeController.java: Se agregará un nuevo endpoint que llamará al nuevo método en el servicio.\n\n--- GENERACIÓN (Fase 3) ---\n\n```java\npackage test.core.api.repository;\n\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport org.springframework.data.jpa.repository.Query;\nimport org.springframework.stereotype.Repository;\nimport test.core.api.model.Employee;\n\nimport java.util.List;\n\n@Repository\npublic interface EmployeeRepository extends JpaRepository<Employee, Long> {\n    @Query(\"SELECT e FROM Employee e WHERE YEAR(e.birthDate) < 2000\")\n    List<Employee> findEmployeesBornBefore2000();\n}\n```\n\n```java\npackage test.core.api.service;\n\nimport test.core.api.model.Employee;\n\nimport java.util.List;\n\npublic interface EmployeeService {\n    List<Employee> getEmployeesBornBefore2000();\n}\n```\n\n```java\npackage test.core.api.service.impl;\n\nimport org.springframework.stereotype.Service;\nimport test.core.api.model.Employee;\nimport test.core.api.repository.EmployeeRepository;\nimport test.core.api.service.EmployeeService;\n\nimport java.util.List;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n    private final EmployeeRepository employeeRepository;\n\n    public EmployeeServiceImpl(EmployeeRepository employeeRepository) {\n        this.employeeRepository = employeeRepository;\n    }\n\n    @Override\n    public List<Employee> getEmployeesBornBefore2000() {\n        return employeeRepository.findEmployeesBornBefore2000();\n    }\n}\n```\n\n```java\npackage test.core.api.controller;\n\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RestController;\nimport test.core.api.model.Employee;\nimport test.core.api.service.EmployeeService;\n\nimport java.util.List;\n\n@RestController\n@RequestMapping(\"/api/employees\")\npublic class EmployeeController {\n    private final EmployeeService employeeService;\n\n    public EmployeeController(EmployeeService employeeService) {\n        this.employeeService = employeeService;\n    }\n\n    @GetMapping(\"/born-before-2000\")\n    public List<Employee> getEmployeesBornBefore2000() {\n        return employeeService.getEmployeesBornBefore2000();\n    }\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 361,
+    "completion_tokens": 546,
+    "total_tokens": 907,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
