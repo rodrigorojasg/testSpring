@@ -154,8 +154,10 @@ jobs:
         run: |
           cd repositorio-base
 
-          PROMPT=$(cat entrada_final_gpt.txt)
+          # Guardamos el contenido del prompt como variable segura
+          PROMPT=$(cat entrada_final_gpt.txt | jq -Rs .)
 
+          # Creamos el JSON de payload
           cat <<EOF > payload_generacion.json
           {
             "model": "gpt-4",
@@ -166,7 +168,7 @@ jobs:
               },
               {
                 "role": "user",
-                "content": ${PROMPT@Q}
+                "content": $PROMPT
               }
             ],
             "temperature": 0.3
@@ -183,10 +185,6 @@ jobs:
 
           echo "📨 Respuesta de OpenAI:"
           cat respuesta_gpt.json
-
-          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
-
-
 
           jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
 
