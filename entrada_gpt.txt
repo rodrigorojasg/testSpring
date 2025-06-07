@@ -1,0 +1,275 @@
+
+
+--- HISTORIA DE USUARIO ---
+id: HDU-EMP-003
+titulo: Prevenir eliminación de empleadas
+actor: Administrador del sistema
+descripcion: >
+  Como administrador del sistema,
+  quiero que no se permita eliminar empleados de género femenino,
+  para cumplir con la normativa  interna de no eliminar registros históricos sensibles.
+
+criterios_aceptacion:
+  - Si se intenta eliminar un empleado con género "Femenino", se debe lanzar una excepción o retornar un error controlado.
+  - Si el empleado es de género "Masculino" u otro valor, se permite la eliminación normal.
+  - El método de eliminación actual debe ser modificado para incluir esta validación.
+  - No debe eliminarse ninguna lógica existente que ya esté implementada en ese método.
+  - Se deben mantener todos los métodos actuales sin eliminación ni reemplazo.
+  - La modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.
+
+
+--- CÓDIGO EXISTENTE DEL PROYECTO ---
+
+
+// Archivo: src/main/java/test/core/api/model/Employee.java
+
+package test.core.api.model;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "employee")
+public class Employee implements Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
+	private String firstName;
+	private String middleName;
+	private String lastName;
+	private String secondLastName;
+	private Integer age;
+	private String gender;
+	private LocalDate birthDate;
+	private String position;
+	public Long getId() {
+		return id;
+	}
+	public void setId(Long id) {
+		this.id = id;
+	}
+	public String getFirstName() {
+		return firstName;
+	}
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+	public String getMiddleName() {
+		return middleName;
+	}
+	public void setMiddleName(String middleName) {
+		this.middleName = middleName;
+	}
+	public String getLastName() {
+		return lastName;
+	}
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
+	public String getSecondLastName() {
+		return secondLastName;
+	}
+	public void setSecondLastName(String secondLastName) {
+		this.secondLastName = secondLastName;
+	}
+	public Integer getAge() {
+		return age;
+	}
+	public void setAge(Integer age) {
+		this.age = age;
+	}
+	public String getGender() {
+		return gender;
+	}
+	public void setGender(String gender) {
+		this.gender = gender;
+	}
+	public LocalDate getBirthDate() {
+		return birthDate;
+	}
+	public void setBirthDate(LocalDate birthDate) {
+		this.birthDate = birthDate;
+	}
+	public String getPosition() {
+		return position;
+	}
+	public void setPosition(String position) {
+		this.position = position;
+	}
+	
+	
+	
+
+}
+
+
+// Archivo: src/main/java/test/core/api/repository/EmployeeRepository.java
+
+package test.core.api.repository;
+
+import org.springframework.data.repository.PagingAndSortingRepository;
+
+import test.core.api.model.Employee;
+
+public interface EmployeeRepository extends PagingAndSortingRepository<Employee, Long> {
+
+
+}
+
+
+
+
+// Archivo: src/main/java/test/core/api/EmployeeCoreApiApplication.java
+
+package test.core.api;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
+@SpringBootApplication
+@EnableAsync
+public class EmployeeCoreApiApplication {
+	
+	@Autowired
+	public static void main(String[] args) {
+		SpringApplication.run(EmployeeCoreApiApplication.class, args);
+	}
+	
+	
+}
+
+
+// Archivo: src/main/java/test/core/api/controller/EmployeeController.java
+
+package test.core.api.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import test.core.api.model.Employee;
+import test.core.api.service.EmployeeService;
+
+@RestController
+@RequestMapping("/api/employees")
+public class EmployeeController {
+
+    @Autowired
+    private EmployeeService service;
+
+    @GetMapping
+    public List<Employee> getAll() {
+        System.out.println("Fetching all employees");
+        return service.getAllEmployees();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.deleteEmployeeById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping
+    public Employee insert(@RequestBody Employee employee) {
+        return service.saveEmployee(employee);
+    }
+
+   
+}
+
+
+
+
+
+
+
+// Archivo: src/main/java/test/core/api/service/EmployeeService.java
+
+package test.core.api.service;
+
+import java.util.List;
+
+import test.core.api.model.Employee;
+
+public interface EmployeeService {
+	
+
+	List<Employee> getAllEmployees();
+	void deleteEmployeeById(Long id);
+    Employee saveEmployee(Employee employee);
+
+
+
+	
+}
+
+// Archivo: src/main/java/test/core/api/service/impl/EmployeeServiceImpl.java
+
+package test.core.api.service.impl;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import test.core.api.model.Employee;
+import test.core.api.repository.EmployeeRepository;
+import test.core.api.service.EmployeeService;
+
+@Component
+public class EmployeeServiceImpl implements EmployeeService {
+	
+	    @Autowired
+	    private EmployeeRepository repository;
+
+	    public List<Employee> getAllEmployees() {
+	        return (List<Employee>) repository.findAll();
+	    }
+
+	    public void deleteEmployeeById(Long id) {
+	        repository.deleteById(id);
+	    }
+
+	    public Employee saveEmployee(Employee employee) {
+	        return repository.save(employee); 
+	    }
+}
+--- ANÁLISIS DE CLASES EXISTENTES ---
+Genera una tabla Markdown como esta:
+
+| Clase Java | Clasificación | Motivo |
+|------------|----------------|--------|
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` |
+| EmployeeServiceImpl | MODIFICABLE | Debe validar antes de borrar |
+| NuevaClaseX | NUEVA | Requerida por funcionalidad nueva |
+
+--- INSTRUCCIONES DE MODIFICACIÓN ---
+- No eliminar ni reemplazar lógica existente.
+- Si se modifica un método, incluirlo completo con el nuevo código y lo que ya tenía.
+- Solo generar clases nuevas si están indicadas como NUEVA.
+- NO repetir clases ya existentes si no cambian.
+
+--- CÓDIGO A GENERAR ---
+Devuelve solo clases Java válidas. Cada bloque debe comenzar con `package ...`.
+También incluye tests JUnit5 si aplica.

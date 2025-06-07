@@ -1,0 +1,54 @@
+--- HISTORIA DE USUARIO ---
+id: HDU-EMP-003
+titulo: Prevenir eliminación de empleadas
+actor: Administrador del sistema
+descripcion: >
+  Como administrador del sistema,
+  quiero que no se permita eliminar empleados de género femenino,
+  para cumplir con la normativa  interna de no eliminar registros históricos sensibles.
+
+criterios_aceptacion:
+  - Si se intenta eliminar un empleado con género "Femenino", se debe lanzar una excepción o retornar un error controlado.
+  - Si el empleado es de género "Masculino" u otro valor, se permite la eliminación normal.
+  - El método de eliminación actual debe ser modificado para incluir esta validación.
+  - No debe eliminarse ninguna lógica existente que ya esté implementada en ese método.
+  - Se deben mantener todos los métodos actuales sin eliminación ni reemplazo.
+  - La modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.
+
+
+--- DIAGNÓSTICO Y PLAN DE CLASES ---
+--- ANÁLISIS DE CLASES EXISTENTES ---
+
+| Clase Java | Clasificación | Motivo |
+|------------|----------------|--------|
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que se necesita para la validación |
+| EmployeeRepository | REUTILIZABLE-AS-IS | No necesita cambios, ya que la lógica de eliminación se maneja en el servicio |
+| EmployeeService | REUTILIZABLE-AS-IS | La interfaz no necesita cambios, la implementación sí |
+| EmployeeServiceImpl | MODIFICABLE | Necesita validar el género antes de eliminar |
+| EmployeeController | REUTILIZABLE-AS-IS | No necesita cambios, ya que la lógica de eliminación se maneja en el servicio |
+| EmployeeCoreApiApplication | REUTILIZABLE-AS-IS | No necesita cambios |
+
+--- PLAN DE MODIFICACIÓN ---
+
+1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación del género del empleado antes de eliminar. Si el género es "Femenino", se debe lanzar una excepción. Si el género es "Masculino" u otro valor, se permite la eliminación normal. Esta modificación debe estar delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado por la IA.
+
+2. No se requiere la creación de nuevas clases para esta funcionalidad.
+
+3. No se requiere la modificación de ninguna otra clase existente.
+
+4. No se requiere la eliminación de ninguna lógica existente.
+
+5. Todos los métodos actuales deben mantenerse sin eliminación ni reemplazo.
+
+6. Se deben generar pruebas unitarias para el nuevo comportamiento del método `deleteEmployeeById(Long id)` en la clase `EmployeeServiceImpl`. Las pruebas deben cubrir los casos en que el empleado es de género "Femenino", "Masculino" y otros valores.
+
+--- INSTRUCCIONES DE GENERACIÓN DE CÓDIGO ---
+- Modifica únicamente las clases marcadas como MODIFICABLE.
+- Crea nuevas clases solo si están indicadas como NUEVA.
+- No cambies de paquete ni nombre de clase.
+- Si modificas un método, inclúyelo completo con su lógica anterior más la nueva.
+- No omitas lógica existente.
+- Cada clase debe comenzar con `package ...`.
+- Devuelve únicamente clases y tests JUnit 5 válidos.
+- No incluyas explicaciones ni comentarios adicionales.
+

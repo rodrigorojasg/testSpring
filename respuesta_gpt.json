@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-Bfc13gtLyiSs2VwCgfgDt9vzcopaf",
+  "object": "chat.completion",
+  "created": 1749257281,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "--- CÓDIGO JAVA ---\n\npackage com.example.employee.core;\n\nimport com.example.employee.core.exception.EmployeeException;\nimport com.example.employee.core.repository.EmployeeRepository;\nimport com.example.employee.core.entity.Employee;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    @Override\n    public void deleteEmployeeById(Long id) {\n        // Begin of modification by AI\n        Employee employee = employeeRepository.findById(id)\n                .orElseThrow(() -> new EmployeeException(\"Employee not found\"));\n\n        if (\"Femenino\".equalsIgnoreCase(employee.getGender())) {\n            throw new EmployeeException(\"Female employees cannot be deleted\");\n        }\n        // End of modification by AI\n\n        employeeRepository.deleteById(id);\n    }\n\n    // Other methods...\n}\n\n--- CÓDIGO JAVA TEST ---\n\npackage com.example.employee.core;\n\nimport com.example.employee.core.exception.EmployeeException;\nimport com.example.employee.core.repository.EmployeeRepository;\nimport com.example.employee.core.entity.Employee;\nimport org.junit.jupiter.api.Test;\nimport org.junit.jupiter.api.extension.ExtendWith;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.junit.jupiter.MockitoExtension;\n\nimport java.util.Optional;\n\nimport static org.junit.jupiter.api.Assertions.assertThrows;\nimport static org.mockito.Mockito.when;\n\n@ExtendWith(MockitoExtension.class)\npublic class EmployeeServiceImplTest {\n\n    @InjectMocks\n    private EmployeeServiceImpl employeeService;\n\n    @Mock\n    private EmployeeRepository employeeRepository;\n\n    @Test\n    public void deleteFemaleEmployeeById_ShouldThrowException() {\n        Employee employee = new Employee();\n        employee.setId(1L);\n        employee.setGender(\"Femenino\");\n\n        when(employeeRepository.findById(1L)).thenReturn(Optional.of(employee));\n\n        assertThrows(EmployeeException.class, () -> employeeService.deleteEmployeeById(1L));\n    }\n\n    @Test\n    public void deleteMaleEmployeeById_ShouldNotThrowException() {\n        Employee employee = new Employee();\n        employee.setId(2L);\n        employee.setGender(\"Masculino\");\n\n        when(employeeRepository.findById(2L)).thenReturn(Optional.of(employee));\n\n        employeeService.deleteEmployeeById(2L);\n    }\n\n    @Test\n    public void deleteOtherGenderEmployeeById_ShouldNotThrowException() {\n        Employee employee = new Employee();\n        employee.setId(3L);\n        employee.setGender(\"Other\");\n\n        when(employeeRepository.findById(3L)).thenReturn(Optional.of(employee));\n\n        employeeService.deleteEmployeeById(3L);\n    }\n\n    // Other tests...\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 956,
+    "completion_tokens": 518,
+    "total_tokens": 1474,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
