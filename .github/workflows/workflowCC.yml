@@ -159,7 +159,7 @@ jobs:
           jq -n --arg prompt "$PROMPT" '{
             model: "gpt-4",
             messages: [
-              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos. Cada bloque debe comenzar con \"package\". No incluyas texto adicional." },
+              { "role": "system", "content": "Eres un generador de código Java experto en Spring Boot. Solo devuelve clases y tests JUnit válidos. Cada bloque debe comenzar con \"package\". No incluyas texto adicional. Solo puedes modificar o usar clases que aparecen en el código fuente incluido. No debes inventar clases nuevas ni reemplazar clases existentes a menos que se indique explícitamente. Es muy importante que NO borres los métodos existentes de las clases a menos que la historia de usuario lo requiera." }
               { "role": "user", "content": $prompt }
             ],
             temperature: 0.3
