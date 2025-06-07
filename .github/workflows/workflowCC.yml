@@ -156,17 +156,22 @@ jobs:
 
           PROMPT=$(cat entrada_final_gpt.txt)
 
-          jq -n --arg prompt "$PROMPT" '{
-            model: "gpt-4",
-            messages: [
+          cat <<EOF > payload_generacion.json
+          {
+            "model": "gpt-4",
+            "messages": [
               {
-              "role": "system",
-              "content": "Eres un generador de código Java experto en Spring Boot. Cada clase que modifiques debe incluir todos sus métodos existentes reales, no los resumas ni los reemplaces por comentarios. NO USES '// Other methods...' NI NINGÚN COMENTARIO QUE OMITE MÉTODOS. Si modificas una clase, incluye su código completo, con todos los métodos existentes intactos más los nuevos o modificados. No inventes clases nuevas salvo que estén marcadas como NUEVA en el análisis. No incluyas texto fuera del código. Cada clase debe comenzar con 'package ...'."
+                "role": "system",
+                "content": "Eres un generador de código Java experto en Spring Boot. Cada clase que modifiques debe incluir todos sus métodos existentes reales, no los resumas ni los reemplaces por comentarios. NO USES '// Other methods...' NI NINGÚN COMENTARIO QUE OMITE MÉTODOS. Si modificas una clase, incluye su código completo, con todos los métodos existentes intactos más los nuevos o modificados. No inventes clases nuevas salvo que estén marcadas como NUEVA en el análisis. No incluyas texto fuera del código. Cada clase debe comenzar con 'package ...'."
               },
-              { "role": "user", "content": $prompt }
+              {
+                "role": "user",
+                "content": ${PROMPT@Q}
+              }
             ],
-            temperature: 0.3
-          }' > payload_generacion.json
+            "temperature": 0.3
+          }
+          EOF
 
           echo "🧾 Payload generado para OpenAI:"
           cat payload_generacion.json
@@ -177,7 +182,10 @@ jobs:
             -d @payload_generacion.json > respuesta_gpt.json
 
           echo "📨 Respuesta de OpenAI:"
-          cat respuesta_gpt.json    
+          cat respuesta_gpt.json
+
+          jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
+
 
 
           jq -r '.choices[0].message.content // "❌ GPT no devolvió contenido válido."' respuesta_gpt.json > clases_generadas.java
