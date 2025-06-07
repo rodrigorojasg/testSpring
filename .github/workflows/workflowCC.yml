@@ -46,8 +46,10 @@ jobs:
 
       - name: Indexar y agregar contenido de clases Java existentes al prompt
         run: |
-          echo "📁 Buscando clases Java dentro de repositorio-base/src/main/java..."
-          find repositorio-base/src/main/java -type f -name "*.java" > clases_existentes.txt
+          cd repositorio-base
+
+          echo "📁 Buscando clases Java..."
+          find src/main/java -type f -name "*.java" > clases_existentes.txt
 
           if [ ! -s clases_existentes.txt ]; then
             echo "❌ No se encontraron archivos .java. Abortando."
@@ -55,7 +57,7 @@ jobs:
           fi
 
           echo -e "\n\n--- HISTORIA DE USUARIO ---" > entrada_gpt.txt
-          cat repositorio-base/"${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
+          cat "${{ steps.historia.outputs.ruta }}" >> entrada_gpt.txt
 
           echo -e "\n\n--- CÓDIGO EXISTENTE DEL PROYECTO ---" >> entrada_gpt.txt
 
@@ -76,15 +78,14 @@ jobs:
           | NuevaClaseX | NUEVA | Requerida por funcionalidad nueva |
 
           --- INSTRUCCIONES DE MODIFICACIÓN ---
-          - Si decides modificar una clase, debes incluir **todo su contenido**, incluyendo los métodos existentes.
-          - 🚫 No uses `// Other methods...`. Incluye **todos los métodos previos** junto con la nueva funcionalidad.
-          - ✅ No elimines ni reemplaces lógica existente.
-          - ✅ Solo genera clases nuevas si están indicadas como NUEVA.
-          - ❌ NO repitas clases existentes si no las modificas.
-          - 🧪 Incluye tests JUnit5 si aplica.
+          - No eliminar ni reemplazar lógica existente.
+          - Si se modifica un método, incluirlo completo con el nuevo código y lo que ya tenía.
+          - Solo generar clases nuevas si están indicadas como NUEVA.
+          - NO repetir clases ya existentes si no cambian.
 
           --- CÓDIGO A GENERAR ---
-          Devuelve únicamente bloques válidos de código Java. Cada uno debe comenzar con `package ...`. No incluyas texto adicional fuera del código.
+          Devuelve solo clases Java válidas. Cada bloque debe comenzar con `package ...`.
+          También incluye tests JUnit5 si aplica.
           EOF
 
       - name: Mostrar tabla de diagnóstico (si existe)
