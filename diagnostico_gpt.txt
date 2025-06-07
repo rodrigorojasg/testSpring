@@ -1,0 +1,21 @@
+--- ANÁLISIS DE CLASES EXISTENTES ---
+
+| Clase Java | Clasificación | Motivo |
+|------------|----------------|--------|
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que se necesita para la validación |
+| EmployeeRepository | REUTILIZABLE-AS-IS | Proporciona el método `deleteById` que se necesita para eliminar un empleado |
+| EmployeeService | MODIFICABLE | Necesita un nuevo método para validar el género antes de eliminar |
+| EmployeeServiceImpl | MODIFICABLE | Implementación del servicio donde se realizará la validación |
+| EmployeeController | MODIFICABLE | El método `delete` necesita manejar la nueva excepción |
+
+--- PLAN DE MODIFICACIÓN ---
+
+1. Clase `EmployeeService`: Agregar un nuevo método `validateAndDeleteEmployeeById(Long id)`. Este método primero buscará el empleado por id, verificará el género y si es válido, eliminará el empleado.
+
+2. Clase `EmployeeServiceImpl`: Implementar el nuevo método `validateAndDeleteEmployeeById(Long id)`. Este método primero buscará el empleado por id, verificará el género y si es válido, eliminará el empleado. Si el género es "Femenino", lanzará una excepción.
+
+3. Clase `EmployeeController`: Modificar el método `delete` para llamar al nuevo método `validateAndDeleteEmployeeById(Long id)` en lugar de `deleteEmployeeById(Long id)`. También se debe manejar la nueva excepción lanzada por `validateAndDeleteEmployeeById(Long id)`.
+
+4. Crear una nueva clase de excepción `GenderValidationException` que se lanzará cuando se intente eliminar un empleado de género femenino.
+
+5. Crear pruebas unitarias para el nuevo método `validateAndDeleteEmployeeById(Long id)` y la nueva excepción `GenderValidationException`.
