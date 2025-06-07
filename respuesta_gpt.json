@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BfburUEhYdaoWRegA4fbTb0guf8kb",
+  "object": "chat.completion",
+  "created": 1749256897,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package com.example.demo.service.impl;\n\nimport com.example.demo.entity.Employee;\nimport com.example.demo.exception.GenderException;\nimport com.example.demo.repository.EmployeeRepository;\nimport com.example.demo.service.EmployeeService;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.stereotype.Service;\n\n@Service\npublic class EmployeeServiceImpl implements EmployeeService {\n\n    @Autowired\n    private EmployeeRepository employeeRepository;\n\n    // Other methods...\n\n    @Override\n    public void deleteEmployeeById(Long id) {\n        Employee employee = employeeRepository.findById(id)\n                .orElseThrow(() -> new RuntimeException(\"Employee not found\"));\n\n        // Start of AI modification\n        if (\"Femenino\".equalsIgnoreCase(employee.getGender())) {\n            throw new GenderException(\"Cannot delete female employees due to internal regulations\");\n        }\n        // End of AI modification\n\n        employeeRepository.deleteById(id);\n    }\n}\n\npackage com.example.demo.exception;\n\npublic class GenderException extends RuntimeException {\n    public GenderException(String message) {\n        super(message);\n    }\n}\n\npackage com.example.demo.service.impl;\n\nimport com.example.demo.entity.Employee;\nimport com.example.demo.exception.GenderException;\nimport com.example.demo.repository.EmployeeRepository;\nimport com.example.demo.service.EmployeeService;\nimport org.junit.jupiter.api.BeforeEach;\nimport org.junit.jupiter.api.Test;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.MockitoAnnotations;\n\nimport java.util.Optional;\n\nimport static org.junit.jupiter.api.Assertions.assertThrows;\nimport static org.mockito.Mockito.*;\n\npublic class EmployeeServiceImplTest {\n\n    @InjectMocks\n    private EmployeeServiceImpl employeeService;\n\n    @Mock\n    private EmployeeRepository employeeRepository;\n\n    @BeforeEach\n    public void setup() {\n        MockitoAnnotations.initMocks(this);\n    }\n\n    @Test\n    public void deleteEmployeeById_FemaleEmployee_ThrowsGenderException() {\n        Employee employee = new Employee();\n        employee.setGender(\"Femenino\");\n        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employee));\n\n        assertThrows(GenderException.class, () -> employeeService.deleteEmployeeById(1L));\n\n        verify(employeeRepository, never()).deleteById(anyLong());\n    }\n\n    @Test\n    public void deleteEmployeeById_MaleEmployee_DeletesEmployee() {\n        Employee employee = new Employee();\n        employee.setGender(\"Masculino\");\n        when(employeeRepository.findById(anyLong())).thenReturn(Optional.of(employee));\n\n        employeeService.deleteEmployeeById(1L);\n\n        verify(employeeRepository).deleteById(anyLong());\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 817,
+    "completion_tokens": 487,
+    "total_tokens": 1304,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

@@ -1,0 +1,17 @@
+--- ANÁLISIS DE CLASES EXISTENTES ---
+
+| Clase Java | Clasificación | Motivo |
+|------------|----------------|--------|
+| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` necesario para la validación. |
+| EmployeeRepository | REUTILIZABLE-AS-IS | No se requiere modificación, ya que solo se encarga de las operaciones de base de datos. |
+| EmployeeService | REUTILIZABLE-AS-IS | La interfaz del servicio no necesita modificaciones. |
+| EmployeeServiceImpl | MODIFICABLE | Necesita una modificación en el método `deleteEmployeeById` para agregar la validación requerida. |
+| EmployeeController | REUTILIZABLE-AS-IS | No se requiere modificación, ya que solo se encarga de manejar las solicitudes HTTP. |
+
+--- PLAN DE MODIFICACIÓN ---
+
+1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById` para agregar una validación que verifique el género del empleado antes de eliminarlo. Si el género es "Femenino", se debe lanzar una excepción. Si el género es "Masculino" u otro valor, se permite la eliminación normal.
+
+--- CÓDIGO A GENERAR ---
+
+No se proporcionará código en esta etapa, ya que solo se solicita un análisis de las clases existentes y un plan de modificación. El código se proporcionará en la siguiente etapa del proceso.
