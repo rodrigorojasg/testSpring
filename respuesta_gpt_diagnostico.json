@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BfcNAENNr7y2DvVsQBFwoLWIpM4rM",
+  "object": "chat.completion",
+  "created": 1749258652,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "--- ANÁLISIS DE CLASES EXISTENTES ---\n\n| Clase Java | Clasificación | Motivo |\n|------------|----------------|--------|\n| Employee | REUTILIZABLE-AS-IS | Contiene atributo `gender` que es necesario para la nueva validación. |\n| EmployeeRepository | REUTILIZABLE-AS-IS | No necesita cambios para la nueva funcionalidad. |\n| EmployeeService | REUTILIZABLE-AS-IS | La interfaz no necesita cambios, pero la implementación sí. |\n| EmployeeServiceImpl | MODIFICABLE | Necesita validar el género antes de eliminar un empleado. |\n| EmployeeController | REUTILIZABLE-AS-IS | No necesita cambios para la nueva funcionalidad. |\n| EmployeeCoreApiApplication | REUTILIZABLE-AS-IS | No necesita cambios para la nueva funcionalidad. |\n\n--- PLAN DE MODIFICACIÓN ---\n\n1. Clase `EmployeeServiceImpl`: Modificar el método `deleteEmployeeById(Long id)` para incluir una validación del género del empleado antes de eliminarlo. Si el género es \"Femenino\", se debe lanzar una excepción. Si el género es \"Masculino\" u otro valor, se permite la eliminación normal. No se debe eliminar ninguna lógica existente que ya esté implementada en ese método.\n\n--- CÓDIGO A GENERAR ---\n\nNo se proporcionará código en esta etapa, ya que solo se solicita el análisis de las clases existentes y el plan de modificación.",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1497,
+    "completion_tokens": 324,
+    "total_tokens": 1821,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}
