@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-BfbbW80rQl4rrvPKhubdJt1b3Vkwd",
+  "object": "chat.completion",
+  "created": 1749255698,
+  "model": "gpt-4-0613",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "package com.example.demo.model;\n\npublic class Empleado {\n    private String id;\n    private String nombre;\n    private String genero;\n\n    // Constructor, getters y setters existentes\n\n    // Getter para el genero del empleado\n    public String getGenero() {\n        return genero;\n    }\n}\n\npackage com.example.demo.service;\n\nimport com.example.demo.model.Empleado;\nimport com.example.demo.exception.GenderException;\n\npublic class AdministradorDelSistema {\n\n    // Métodos existentes\n\n    // MODIFICACIÓN INICIO: HDU-EMP-003\n    public void eliminarEmpleado(Empleado empleado) throws GenderException {\n        // Lógica existente de eliminación de empleado\n\n        // Validación de género\n        if (empleado.getGenero().equalsIgnoreCase(\"Femenino\")) {\n            throw new GenderException(\"No se permite eliminar empleados de género femenino\");\n        }\n\n        // Lógica existente de eliminación de empleado\n    }\n    // MODIFICACIÓN FIN: HDU-EMP-003\n}\n\npackage com.example.demo.exception;\n\npublic class GenderException extends Exception {\n    public GenderException(String message) {\n        super(message);\n    }\n}\n\npackage com.example.demo.service;\n\nimport com.example.demo.model.Empleado;\nimport com.example.demo.exception.GenderException;\nimport org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.assertThrows;\n\npublic class AdministradorDelSistemaTest {\n\n    @Test\n    public void eliminarEmpleado_generoFemenino_lanzaExcepcion() {\n        // Preparar\n        Empleado empleado = new Empleado();\n        empleado.setGenero(\"Femenino\");\n        AdministradorDelSistema admin = new AdministradorDelSistema();\n\n        // Ejecutar y verificar\n        assertThrows(GenderException.class, () -> admin.eliminarEmpleado(empleado));\n    }\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 727,
+    "completion_tokens": 385,
+    "total_tokens": 1112,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

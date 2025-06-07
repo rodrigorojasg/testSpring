@@ -1,0 +1,18 @@
+Análisis de Clases Existentes:
+
+1. Clase Empleado: Esta clase probablemente contiene los detalles del empleado, incluyendo el género. Es posible que necesitemos agregar un método para obtener el género del empleado.
+
+2. Clase AdministradorDelSistema: Esta clase probablemente contiene el método para eliminar empleados. Necesitaremos modificar este método para incluir la validación de género.
+
+Plan de Modificación:
+
+1. Clase Empleado: 
+   - No se requieren cambios en esta clase si ya existe un método para obtener el género del empleado. Si no existe tal método, necesitaremos agregarlo.
+
+2. Clase AdministradorDelSistema:
+   - En el método de eliminación de empleados, antes de eliminar el empleado, obtendremos el género del empleado.
+   - Si el género es "Femenino", lanzaremos una excepción o retornaremos un error controlado.
+   - Si el género es "Masculino" u otro valor, permitiremos la eliminación normal.
+   - Esta modificación estará delimitada por comentarios que indiquen claramente el inicio y fin del cambio realizado.
+
+Nota: Este plan de modificación asume que ya existe un método para eliminar empleados y un método para obtener el género del empleado. Si estos métodos no existen, necesitarán ser implementados.
